@@ -1,0 +1,24 @@
+KNSL Legal Intelligence — Pipeline Verification Log
+Node v22.22.2 · TypeScript Version 5.6.3
+
+$ npx tsc --noEmit
+OK — strict typecheck passed; all @ts-expect-error compile-negatives fired (traceability + stage-isolation enforced by the compiler).
+
+$ npx ts-node src/legalPipeline.fixtures.test.ts
+
+# POSITIVE FIXTURE
+  PASS  end-to-end pipeline validates
+
+# NEGATIVE FIXTURES (runtime invariants)
+  PASS  A. issue with empty factIds  (threw ISSUE_NO_TRACE)
+  PASS  A. retrieved statute with empty factIds  (threw STATUTE_NO_TRACE)
+  PASS  B. issue certainty raised above ceiling  (threw UNCERTAINTY_RAISED)
+  PASS  B. alleged fact -> asserted element conclusion  (threw UNCERTAINTY_RAISED)
+  PASS  D. Stage 2 references a statute  (threw STATUTE_IN_ISSUE)
+  PASS  D. Stage 4 verdict leaks via note  (threw VERDICT_LEAK)
+  PASS  D. retrieval exceeds maxResults  (threw RETRIEVAL_OVERFLOW)
+  PASS  D. external label leaks as sole strong support  (threw EXTERNAL_LABEL_LEAK)
+
+# RESULT  9 passed, 0 failed
+
+exit code: 0
