@@ -1,5 +1,5 @@
 import React from 'react';
-import MainLayout from './MainLayout'; // Memanggil wajah baru dari Claude
+import MainLayout from './MainLayout.jsx';
 
 export default function App() {
   return <MainLayout />;
