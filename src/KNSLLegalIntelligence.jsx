@@ -683,47 +683,16 @@ const STYLES = `
   *{-webkit-tap-highlight-color:transparent;}
   .scrollbar::-webkit-scrollbar{width:0;height:0;}
 
-  /* === LAYOUT STABILITY FIXES === */
+  /* === MOBILE POLISH (gentle) === */
 
-  /* Viewport: prevent body scroll, let app containers handle it */
-  html{height:100%;}
-  body{height:100%;overflow:hidden;overscroll-behavior:none;}
+  /* Topbar: slightly tighter */
+  .topbar{padding:12px 16px 10px !important;}
 
-  /* App wrapper: fill screen, no overflow */
-  .knsl{height:100dvh;min-height:100dvh;overflow:hidden;position:relative;width:100%;}
-  .shell{overflow:hidden;width:100%;height:100%;}
-  .main{height:100%;min-height:0 !important;overflow:hidden;display:flex;flex-direction:column;}
+  /* Page: room for bottom tab bar */
+  .page{padding-bottom:96px !important;}
 
-  /* Page: the scroll container — properly bounded */
-  .page{flex:1;min-height:0;overflow-y:auto !important;overflow-x:hidden !important;
-    -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
-    padding-bottom:104px !important;max-width:100vw;}
-
-  /* Topbar: reduce excessive top space */
-  .topbar{padding:10px 16px 8px !important;gap:8px !important;flex-shrink:0;}
-  .topbar h1{font-size:22px !important;}
-  .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:3px !important;}
-
-  /* Sidebar: proper safe-area */
-  .sidebar{padding-top:max(env(safe-area-inset-top,16px),20px) !important;
-    height:100dvh !important;}
-
-  /* Prevent horizontal overflow */
-  .view-enter,.analysis-grid,.drafting-grid,.two-col,.cr-grid{
-    max-width:100%;overflow-x:hidden;}
-  .metric-grid{max-width:100%;overflow:hidden;}
-
-  /* Login screen: scroll if needed, centered */
-  .login-screen{min-height:100dvh;overflow-y:auto;overflow-x:hidden;
-    padding-top:max(env(safe-area-inset-top,16px),20px) !important;}
-
-  /* Glass cards: prevent overflow */
-  .glass{max-width:100%;overflow:hidden;word-break:break-word;}
-
-  /* Tables: scroll horizontally if needed */
-  .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .docket-row{min-width:0 !important;}
-  img{max-width:100%;height:auto;}
+  /* Prevent horizontal overflow on key containers */
+  .view-enter,.page{overflow-x:hidden;max-width:100vw;}
 }
 
 /* ===== login screen ===== */
