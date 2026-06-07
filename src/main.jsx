@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.jsx";
+// KITA UBAH DI SINI: Diarahkan ke App.js (tanpa ketik ekstensi agar aman)
+import App from "./App";
 
 if (typeof window !== "undefined") {
   window.__CLAUDE_PROXY__ = "/api/claude";
