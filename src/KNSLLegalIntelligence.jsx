@@ -4,7 +4,7 @@ import {
   Search, Bell, Menu, X, ChevronRight, Gavel, Clock, CalendarDays,
   TrendingUp, AlertTriangle, CheckCircle2, Sparkles, FileText,
   ArrowUpRight, Briefcase, Users, Activity, Settings, Zap, Info,
-  FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History,
+  FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History, LogOut,
 } from "lucide-react";
 import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -599,27 +599,148 @@ const STYLES = `
 }
 @media(max-width:520px){ .metric-grid{grid-template-columns:1fr;} }
 
-/* ===== mobile bottom tab bar (added) ===== */
+/* ===== KNSL premium mobile restyle ===== */
 .mobile-tabbar{display:none;}
 @media(max-width:860px){
+  /* === Typography: switch to premium mobile fonts === */
+  .knsl{font-family:'Manrope','Hanken Grotesk',system-ui,sans-serif;
+    background:radial-gradient(130% 60% at 0% 0%,rgba(16,185,129,0.07),transparent 45%),
+    radial-gradient(120% 60% at 100% 100%,rgba(212,175,55,0.05),transparent 50%),#0A0A0A;}
+  .serif{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;}
+
+  /* === Cards: rounder, glassmorphic, premium feel === */
+  .glass{border-radius:22px;
+    background:linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.012));
+    border:1px solid rgba(255,255,255,0.07);
+    backdrop-filter:blur(14px) saturate(120%);-webkit-backdrop-filter:blur(14px) saturate(120%);
+    box-shadow:0 12px 36px -24px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.04);}
+  .glass-hover:hover{transform:translateY(-2px);border-color:rgba(212,175,55,0.3);
+    box-shadow:0 18px 50px -22px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.05);}
+
+  /* === Topbar: premium mobile header === */
+  .topbar{padding:calc(env(safe-area-inset-top,16px) + 12px) 16px 14px;gap:10px;}
+  .topbar h1{font-size:24px !important;}
+
+  /* === Buttons: larger, rounded, glow === */
+  .btn-primary{border-radius:16px;padding:14px 22px;font-size:15.5px;font-weight:700;
+    background:linear-gradient(180deg,#15C98E 0%,#10B981 40%,#0E9B6E 100%) !important;
+    border:1px solid rgba(16,185,129,0.4) !important;
+    box-shadow:0 0 34px -6px rgba(16,185,129,0.45),0 10px 30px -12px rgba(16,185,129,0.5),inset 0 1px 0 rgba(255,255,255,0.3);}
+  .btn-primary:active{transform:scale(0.985);}
+  .btn-ghost{border-radius:16px;padding:12px 18px;font-size:14.5px;}
+  .btn-ghost:active{transform:scale(0.97);}
+
+  /* === Chips & badges: pill shape === */
+  .chip{border-radius:999px;padding:8px 16px;font-size:13px;}
+  .chip:active{transform:scale(0.95);}
+  .badge{border-radius:999px;padding:5px 13px;font-size:11.5px;}
+
+  /* === Navigation items: rounder, larger === */
+  .nav-item{border-radius:16px;padding:13px 14px;font-size:15.5px;}
+
+  /* === Form fields: rounder, larger === */
+  .field{border-radius:16px;padding:14px 16px;font-size:15px;
+    background:rgba(255,255,255,0.025) !important;border:1px solid rgba(255,255,255,0.1);}
+  .field:focus{border-color:rgba(16,185,129,0.5);box-shadow:0 0 0 4px rgba(16,185,129,0.08);}
+
+  /* === Tabs: larger text, gradient underline === */
+  .tab{font-size:15.5px;padding:11px 4px;font-weight:500;}
+  .tab.active{font-weight:700;}
+  .tab.active::after{height:2.5px;background:linear-gradient(90deg,#10B981,#D4AF37);}
+
+  /* === Metrics: premium card feel === */
+  .gauge-num{font-family:'Playfair Display',serif;}
+
+  /* === Section labels: gold gradient === */
+  .gold-text{background:linear-gradient(95deg,#E7CE7A 0%,#D4AF37 45%,#9A7B22 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+
+  /* === Page: room for bottom bar + breathing space === */
+  .page{padding:0 16px 104px !important;}
+
+  /* === Hairline: subtler === */
+  .hairline{background:linear-gradient(90deg,transparent,rgba(212,175,55,0.18),transparent);}
+
+  /* === Sidebar: premium dark === */
+  .sidebar{background:linear-gradient(160deg,#101512 0%,#0A0A0A 55%) !important;
+    border-right:1px solid rgba(255,255,255,0.07) !important;width:83vw;}
+
+  /* === Bottom tab bar === */
   .mobile-tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:45;align-items:stretch;
     background:rgba(8,10,9,0.93);backdrop-filter:blur(20px) saturate(120%);-webkit-backdrop-filter:blur(20px) saturate(120%);
-    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);
+    border-top:1px solid rgba(255,255,255,0.07);padding-bottom:env(safe-area-inset-bottom,0px);
     box-shadow:0 -10px 30px -18px rgba(0,0,0,0.9);}
   .mtab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
     padding:9px 2px 8px;background:none;border:none;cursor:pointer;color:var(--muted-2);
-    font-family:inherit;font-size:10px;font-weight:600;letter-spacing:.2px;transition:color .25s;
-    -webkit-tap-highlight-color:transparent;}
+    font-family:'Manrope',system-ui,sans-serif;font-size:10px;font-weight:600;letter-spacing:.2px;
+    transition:color .25s;-webkit-tap-highlight-color:transparent;}
   .mtab:active{transform:scale(.92);}
   .mtab.active{color:var(--emerald-bright);}
   .mtab.active svg{filter:drop-shadow(0 0 6px rgba(31,179,126,0.7));}
   .mtab span{line-height:1;}
-  .page{padding-bottom:104px !important;}
-  /* larger touch targets on mobile */
-  .btn-primary,.btn-ghost{padding-top:12px;padding-bottom:12px;}
-  .chip{padding:8px 14px;}
-  .nav-item{padding:13px 14px;}
+
+  /* === scroll & touch behavior === */
+  *{-webkit-tap-highlight-color:transparent;}
+  .scrollbar::-webkit-scrollbar{width:0;height:0;}
+
+  /* === LAYOUT STABILITY FIXES === */
+
+  /* Viewport: prevent body scroll, let app containers handle it */
+  html{height:100%;}
+  body{height:100%;overflow:hidden;overscroll-behavior:none;}
+
+  /* App wrapper: fill screen, no overflow */
+  .knsl{height:100dvh;min-height:100dvh;overflow:hidden;position:relative;width:100%;}
+  .shell{overflow:hidden;width:100%;height:100%;}
+  .main{height:100%;min-height:0 !important;overflow:hidden;display:flex;flex-direction:column;}
+
+  /* Page: the scroll container — properly bounded */
+  .page{flex:1;min-height:0;overflow-y:auto !important;overflow-x:hidden !important;
+    -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
+    padding-bottom:104px !important;max-width:100vw;}
+
+  /* Topbar: reduce excessive top space */
+  .topbar{padding:10px 16px 8px !important;gap:8px !important;flex-shrink:0;}
+  .topbar h1{font-size:22px !important;}
+  .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:3px !important;}
+
+  /* Sidebar: proper safe-area */
+  .sidebar{padding-top:max(env(safe-area-inset-top,16px),20px) !important;
+    height:100dvh !important;}
+
+  /* Prevent horizontal overflow */
+  .view-enter,.analysis-grid,.drafting-grid,.two-col,.cr-grid{
+    max-width:100%;overflow-x:hidden;}
+  .metric-grid{max-width:100%;overflow:hidden;}
+
+  /* Login screen: scroll if needed, centered */
+  .login-screen{min-height:100dvh;overflow-y:auto;overflow-x:hidden;
+    padding-top:max(env(safe-area-inset-top,16px),20px) !important;}
+
+  /* Glass cards: prevent overflow */
+  .glass{max-width:100%;overflow:hidden;word-break:break-word;}
+
+  /* Tables: scroll horizontally if needed */
+  .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .docket-row{min-width:0 !important;}
+  img{max-width:100%;height:auto;}
 }
+
+/* ===== login screen ===== */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;min-height:100dvh;padding:40px 28px;text-align:center;position:relative;overflow:hidden;}
+.login-ambient{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(600px 400px at 50% 15%,rgba(19,133,92,0.14),transparent 60%),
+  radial-gradient(400px 300px at 60% 85%,rgba(216,192,138,0.07),transparent 55%);}
+.login-card{position:relative;z-index:1;max-width:420px;width:100%;}
+.login-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:30px;text-align:left;}
+.login-feat{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;
+  background:rgba(255,255,255,0.02);border:1px solid var(--line);transition:border-color .3s;}
+.login-feat:hover{border-color:rgba(31,179,126,0.3);}
+@media(max-width:520px){.login-features{grid-template-columns:1fr;}.login-screen{padding:32px 20px;}}
+.login-footer{margin-top:32px;font-size:11.5px;color:var(--muted-2);display:flex;align-items:center;justify-content:center;gap:6px;}
+.user-photo{width:36px;height:36px;border-radius:10px;object-fit:cover;border:1px solid var(--line);}
+
 `;
 
 /* ---------- shared demo data ---------- */
@@ -673,8 +794,185 @@ function LogoMark({ size = 46 }) {
   );
 }
 
+/* ---------- auth (local username/password) ---------- */
+
+async function hashPW(pw) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + ":knsl-salt-2026"));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function getStoredUser() {
+  try { const raw = localStorage.getItem("knsl:auth"); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+
+function storeUser(user) {
+  localStorage.setItem("knsl:auth", JSON.stringify(user));
+  if (typeof window !== "undefined") window.__KNSL_USER_ID__ = user.id;
+}
+
+function clearStoredUser() {
+  localStorage.removeItem("knsl:auth");
+  if (typeof window !== "undefined") window.__KNSL_USER_ID__ = "";
+}
+
+function getAccounts() {
+  try { return JSON.parse(localStorage.getItem("knsl:accounts") || "{}"); } catch { return {}; }
+}
+
+function saveAccount(username, data) {
+  const accs = getAccounts();
+  accs[username.toLowerCase()] = data;
+  localStorage.setItem("knsl:accounts", JSON.stringify(accs));
+}
+
+function LoginScreen({ onLogin }) {
+  const hasAccounts = Object.keys(getAccounts()).length > 0;
+  const [mode, setMode] = useState(hasAccounts ? "login" : "register");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState("");
+
+  const doLogin = async () => {
+    setError(""); setSuccess("");
+    const u = username.trim().toLowerCase();
+    const pw = password;
+    if (!u || !pw) { setError("Isi username dan password."); return; }
+    setBusy(true);
+    try {
+      const accs = getAccounts();
+      const acc = accs[u];
+      if (!acc) {
+        setBusy(false);
+        setError("Akun \"" + u + "\" tidak ditemukan di perangkat ini. Klik \"Daftar Baru\" untuk membuat akun.");
+        return;
+      }
+      const h = await hashPW(pw);
+      if (h !== acc.hash) { setBusy(false); setError("Password salah. Coba lagi."); return; }
+      const user = { id: acc.id, name: acc.name, username: acc.username };
+      storeUser(user);
+      onLogin(user);
+    } catch (e) { setBusy(false); setError("Terjadi kesalahan: " + e.message); }
+  };
+
+  const doRegister = async () => {
+    setError(""); setSuccess("");
+    if (!name.trim()) { setError("Isi nama lengkap."); return; }
+    const u = username.trim().toLowerCase();
+    if (!u || u.length < 3) { setError("Username minimal 3 karakter."); return; }
+    if (/[^a-zA-Z0-9._-]/.test(u)) { setError("Username hanya boleh huruf, angka, titik, strip."); return; }
+    if (!password || password.length < 6) { setError("Password minimal 6 karakter."); return; }
+    setBusy(true);
+    try {
+      const accs = getAccounts();
+      if (accs[u]) {
+        // Akun sudah ada → langsung coba login
+        const h = await hashPW(password);
+        if (h === accs[u].hash) {
+          const user = { id: accs[u].id, name: accs[u].name, username: accs[u].username };
+          storeUser(user);
+          onLogin(user);
+          return;
+        }
+        setBusy(false);
+        setError("Username sudah terdaftar dengan password berbeda. Gunakan tab \"Masuk\" atau pilih username lain.");
+        return;
+      }
+      const h = await hashPW(password);
+      const id = "u_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      const acc = { id, name: name.trim(), username: u, hash: h };
+      saveAccount(u, acc);
+      const user = { id, name: name.trim(), username: u };
+      storeUser(user);
+      onLogin(user);
+    } catch (e) { setBusy(false); setError("Terjadi kesalahan: " + e.message); }
+  };
+
+  const submit = (e) => { e.preventDefault(); mode === "login" ? doLogin() : doRegister(); };
+
+  const features = [
+    { icon: Scale, t: "Analisa Kasus AI" },
+    { icon: FileSignature, t: "Smart Drafting" },
+    { icon: BookOpen, t: "Riset Pasal" },
+    { icon: FileSearch, t: "Review Kontrak AI" },
+    { icon: ScanLine, t: "Pindai Dokumen" },
+    { icon: ShieldCheck, t: "Conflict Check" },
+  ];
+
+  return (
+    <div className="knsl">
+      <style>{STYLES}</style>
+      <div className="login-screen">
+        <div className="login-ambient" />
+        <div className="login-card">
+          <LogoMark size={72} />
+          <h1 className="serif" style={{ fontSize: 38, fontWeight: 700, margin: "24px 0 0", letterSpacing: ".5px" }}>KNSL</h1>
+          <div style={{ fontSize: 11, letterSpacing: "3.5px", color: "var(--champagne)", marginTop: 6, textTransform: "uppercase" }}>Legal Intelligence</div>
+          <p style={{ fontSize: 15, color: "var(--silver)", marginTop: 16, lineHeight: 1.6, maxWidth: 340, margin: "16px auto 0" }}>
+            Platform AI untuk praktisi hukum Indonesia — analisa kasus, drafting, riset pasal, dan review kontrak dalam satu sistem.
+          </p>
+
+          {/* tabs login / register */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 28 }}>
+            <span className="chip" onClick={() => { setMode("login"); setError(""); }} style={mode === "login" ? { borderColor: "rgba(31,179,126,0.5)", color: "var(--emerald-bright)" } : {}}>Masuk</span>
+            <span className="chip" onClick={() => { setMode("register"); setError(""); }} style={mode === "register" ? { borderColor: "rgba(31,179,126,0.5)", color: "var(--emerald-bright)" } : {}}>Daftar Baru</span>
+          </div>
+
+          <form onSubmit={submit} style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            {mode === "register" && (
+              <input className="field" placeholder="Nama Lengkap" value={name} onChange={(e) => setName(e.target.value)} style={{ textAlign: "center" }} />
+            )}
+            <input className="field" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoCorrect="off" style={{ textAlign: "center" }} />
+            <input className="field" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ textAlign: "center" }} />
+
+            {error && (
+              <div className="view-enter" style={{ padding: "10px 16px", borderRadius: 12, background: "rgba(220,68,55,0.08)", border: "1px solid rgba(220,68,55,0.28)", fontSize: 13, color: "#ff9a8b", display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
+                <AlertTriangle size={14} style={{ flexShrink: 0 }} />{error}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary" disabled={busy} style={{ width: "100%", marginTop: 4 }}>
+              <Lock size={16} />{mode === "login" ? "Masuk" : "Daftar & Masuk"}
+            </button>
+            {mode === "login" && (
+              <div style={{ marginTop: 10, textAlign: "center" }}>
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>Belum punya akun? </span>
+                <span onClick={() => { setMode("register"); setError(""); }} style={{ fontSize: 13, color: "var(--emerald-bright)", cursor: "pointer", fontWeight: 600 }}>Daftar Baru</span>
+              </div>
+            )}
+            {mode === "register" && (
+              <div style={{ marginTop: 10, textAlign: "center" }}>
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>Sudah punya akun? </span>
+                <span onClick={() => { setMode("login"); setError(""); }} style={{ fontSize: 13, color: "var(--emerald-bright)", cursor: "pointer", fontWeight: 600 }}>Masuk</span>
+              </div>
+            )}
+          </form>
+
+          <div className="login-features">
+            {features.map((ft) => {
+              const Icon = ft.icon;
+              return (
+                <div key={ft.t} className="login-feat">
+                  <div style={{ width: 32, height: 32, borderRadius: 9, display: "grid", placeItems: "center", background: "rgba(19,133,92,0.10)", border: "1px solid rgba(31,179,126,0.2)", flexShrink: 0 }}><Icon size={16} className="emerald-text" /></div>
+                  <span style={{ fontSize: 13, color: "var(--silver)", fontWeight: 500 }}>{ft.t}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="login-footer">
+            <Lock size={12} />Data tersimpan lokal di perangkat \u00b7 per-akun
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- sidebar ---------- */
-function Sidebar({ active, setActive, open, onClose }) {
+function Sidebar({ active, setActive, open, onClose, user, onLogout }) {
   const items = [
     { id: "dashboard", label: "Executive Overview", icon: LayoutDashboard },
     { id: "analysis", label: "Legal Analysis Engine", icon: Scale },
@@ -716,12 +1014,14 @@ function Sidebar({ active, setActive, open, onClose }) {
           <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>{PASAL.length} pasal terindeks dari KUHP, UU PT & UUD 1945.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "16px 6px 0" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#2a3330,#101413)", border: "1px solid var(--line)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600 }} className="gold-text">AK</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Adv. Arya Kusuma</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>Managing Partner</div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,rgba(19,133,92,0.25),#101413)", border: "1px solid var(--line)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600 }} className="gold-text">
+            {user ? user.name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() : "?"}
           </div>
-          <Settings size={16} style={{ color: "var(--muted)", cursor: "pointer" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user ? user.name : "—"}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@{user ? user.username : ""}</div>
+          </div>
+          <LogOut size={16} style={{ color: "var(--muted)", cursor: "pointer", flexShrink: 0 }} onClick={onLogout} title="Keluar" />
         </div>
       </div>
     </aside>
@@ -3137,11 +3437,16 @@ function MobileTabBar({ active, setActive }) {
 }
 
 export default function App() {
+  const [user, setUser] = useState(() => {
+    const u = getStoredUser();
+    if (u && typeof window !== "undefined") window.__KNSL_USER_ID__ = u.id;
+    return u;
+  });
   const [active, setActive] = useState("dashboard");
   const [navOpen, setNavOpen] = useState(false);
   const [seed, setSeed] = useState(null);
   const meta = {
-    dashboard: ["Executive Overview", "Dasbor · Rabu, 3 Juni 2026"],
+    dashboard: ["Executive Overview", "Dasbor · " + getHariTanggal()],
     analysis: ["Legal Analysis Engine", "Analisa Kasus & Ekstraksi Pasal"],
     drafting: ["Smart Drafting Studio", "Drafting & Contract Redlining"],
     research: ["Legal Research", "Riset Pasal & Basis UU"],
@@ -3149,6 +3454,8 @@ export default function App() {
     scan: ["Pindai Dokumen", "Digitalkan dokumen → PDF / Word → kirim ke fitur lain"],
     conflict: ["Conflict Check", "Pemeriksaan Benturan Kepentingan"],
   };
+  const logout = () => { clearStoredUser(); setUser(null); };
+  if (!user) return <LoginScreen onLogin={setUser} />;
   const globalSearch = (q) => { setSeed({ q, n: Date.now() }); setActive("analysis"); setNavOpen(false); };
   const sendIntake = (target, text, name) => {
     if (target === "contract") { if (typeof window !== "undefined") window.__KNSL_INTAKE__ = { text, name }; setActive("contract"); }
@@ -3160,7 +3467,7 @@ export default function App() {
       <style>{STYLES}</style>
       <div className="shell">
         {navOpen && <div className="backdrop" onClick={() => setNavOpen(false)} />}
-        <Sidebar active={active} setActive={setActive} open={navOpen} onClose={() => setNavOpen(false)} />
+        <Sidebar active={active} setActive={setActive} open={navOpen} onClose={() => setNavOpen(false)} user={user} onLogout={logout} />
         <main className="main">
           <Topbar title={meta[active][0]} subtitle={meta[active][1]} onMenu={() => setNavOpen(true)} onGlobalSearch={globalSearch} />
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>

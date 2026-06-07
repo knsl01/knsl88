@@ -1,7 +1,6 @@
 /**
- * src/main.jsx
- * Import langsung KNSLLegalIntelligence.jsx (versi yang sudah ditambah
- * bottom tab bar mobile). Tidak perlu AppRouter lagi.
+ * src/main.jsx — with per-user storage namespace
+ * Storage keys di-prefix "knsl:{userId}:" sehingga data tiap akun terpisah.
  */
 
 import React from "react";
@@ -12,28 +11,37 @@ if (typeof window !== "undefined") {
   window.__CLAUDE_PROXY__ = "/api/claude";
 }
 
+/* ----------------------------------------------------------------
+   Per-user storage polyfill.
+   window.__KNSL_USER_ID__ di-set oleh auth flow di App.
+   Semua key di-prefix "knsl:{userId}:" → data terpisah per akun.
+----------------------------------------------------------------- */
 if (typeof window !== "undefined" && !window.storage) {
-  const P = "knsl:";
+  const prefix = () => {
+    const uid = window.__KNSL_USER_ID__ || "";
+    return uid ? "knsl:" + uid + ":" : "knsl:";
+  };
   window.storage = {
     async get(key) {
-      const v = localStorage.getItem(P + key);
+      const v = localStorage.getItem(prefix() + key);
       return v == null ? null : { key, value: v };
     },
     async set(key, value) {
-      localStorage.setItem(P + key, value);
+      localStorage.setItem(prefix() + key, value);
       return { key, value };
     },
     async delete(key) {
-      localStorage.removeItem(P + key);
+      localStorage.removeItem(prefix() + key);
       return { key, deleted: true };
     },
-    async list(prefix = "") {
+    async list(pfx = "") {
+      const p = prefix();
       const keys = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith(P + prefix)) keys.push(k.slice(P.length));
+        if (k && k.startsWith(p + pfx)) keys.push(k.slice(p.length));
       }
-      return { keys, prefix };
+      return { keys, prefix: pfx };
     },
   };
 }
