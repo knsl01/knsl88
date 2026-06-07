@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.js";
+// KEMBALI KE SETELAN ASLI: Langsung panggil file utama kamu yang 3.133 baris
+import App from "./KNSLLegalIntelligence.jsx";
 
 /* ----------------------------------------------------------------
    Aktifkan AI Counsel di luar Claude: arahkan panggilan AI ke proxy
