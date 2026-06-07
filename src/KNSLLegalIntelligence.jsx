@@ -700,12 +700,12 @@ const STYLES = `
     padding-bottom:104px !important;max-width:100vw;}
 
   /* Topbar: reduce excessive top space */
-  .topbar{padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 8px !important;gap:8px !important;flex-shrink:0;}
+  .topbar{padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 10px !important;gap:8px !important;flex-shrink:0;}
   .topbar h1{font-size:22px !important;}
   .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:3px !important;}
 
   /* Sidebar: proper safe-area */
-  .sidebar{padding-top:max(env(safe-area-inset-top,16px),20px) !important;
+  .sidebar{padding-top:calc(env(safe-area-inset-top,0px) + 16px) !important;
     height:100vh !important;height:100dvh !important;}
 
   /* Prevent horizontal overflow */
@@ -715,7 +715,7 @@ const STYLES = `
 
   /* Login screen: scroll if needed, centered */
   .login-screen{min-height:100dvh;overflow-y:auto;overflow-x:hidden;
-    padding-top:max(env(safe-area-inset-top,16px),20px) !important;}
+    padding-top:calc(env(safe-area-inset-top,0px) + 20px) !important;}
 
   /* Glass cards: prevent overflow */
   .glass{max-width:100%;overflow:hidden;overflow-wrap:break-word;word-break:normal;hyphens:none;}

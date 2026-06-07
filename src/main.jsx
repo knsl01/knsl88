@@ -22,9 +22,16 @@ if (typeof document !== "undefined") {
     vp.name = "viewport";
     document.head.appendChild(vp);
   }
+  // viewport-fit=cover hanya di mode standalone (PWA di layar utama).
+  // Di Safari biasa, env(safe-area-inset-top)=0 sehingga cover akan
+  // mendorong konten ke bawah Dynamic Island → header ketutup. Tanpa
+  // cover, Safari otomatis menaruh konten di dalam safe area.
+  const standalone =
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+    window.navigator.standalone === true;
   vp.setAttribute(
     "content",
-    "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    "width=device-width, initial-scale=1" + (standalone ? ", viewport-fit=cover" : "")
   );
 }
 
