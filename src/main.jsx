@@ -1,12 +1,21 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-// KITA UBAH DI SINI: Diarahkan ke App.js (tanpa ketik ekstensi agar aman)
-import App from "./App";
+import App from "./App.js";
 
+/* ----------------------------------------------------------------
+   Aktifkan AI Counsel di luar Claude: arahkan panggilan AI ke proxy
+   serverless kita (/api/claude), yang menyimpan API key di server.
+----------------------------------------------------------------- */
 if (typeof window !== "undefined") {
   window.__CLAUDE_PROXY__ = "/api/claude";
 }
 
+/* ----------------------------------------------------------------
+   Polyfill window.storage pakai localStorage.
+   Ini bikin penyimpanan kontrak/riwayat/audit tetap persist
+   di luar Claude — tanpa perlu mengedit file KNSLLegalIntelligence.jsx.
+   API-nya menyamai yang dipakai modul: get/set/delete/list.
+----------------------------------------------------------------- */
 if (typeof window !== "undefined" && !window.storage) {
   const P = "knsl:";
   window.storage = {
