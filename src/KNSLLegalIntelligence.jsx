@@ -1056,26 +1056,102 @@ function Topbar({ title, subtitle, onMenu, onGlobalSearch }) {
 }
 
 /* ---------- dashboard ---------- */
-function Metric({ icon: Icon, label, value, delta, suffix, i }) {
+function Metric({ icon: Icon, label, value, delta, suffix, i, editing, onChange }) {
+  const inp = {
+    width: "100%", boxSizing: "border-box", background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(31,179,126,0.35)", borderRadius: 10, color: "var(--text)",
+    padding: "8px 10px", fontFamily: "inherit", marginTop: 6, outline: "none",
+  };
   return (
     <div className="glass glass-hover rise" style={{ padding: 22, animationDelay: `${i * 0.07}s` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ width: 40, height: 40, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(19,133,92,0.12)", border: "1px solid rgba(31,179,126,0.2)" }}><Icon size={19} className="emerald-text" strokeWidth={1.8} /></div>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--emerald-bright)", fontWeight: 600 }}><ArrowUpRight size={13} />{delta}</span>
+        {editing ? (
+          <input value={delta} onChange={(e) => onChange("delta", e.target.value)} placeholder="cth: 4%" style={{ ...inp, width: 74, marginTop: 0, textAlign: "center", fontSize: 12 }} />
+        ) : (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--emerald-bright)", fontWeight: 600 }}><ArrowUpRight size={13} />{delta}</span>
+        )}
       </div>
-      <div className="gauge-num" style={{ fontSize: 30, fontWeight: 700, marginTop: 16, lineHeight: 1 }}>{value}<span style={{ fontSize: 15, color: "var(--muted)", fontWeight: 500 }}>{suffix}</span></div>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 7 }}>{label}</div>
+      {editing ? (
+        <>
+          <input value={value} onChange={(e) => onChange("value", e.target.value)} inputMode="numeric" placeholder="Angka" style={{ ...inp, fontSize: 22, fontWeight: 700 }} />
+          <input value={label} onChange={(e) => onChange("label", e.target.value)} placeholder="Label" style={{ ...inp, fontSize: 13 }} />
+        </>
+      ) : (
+        <>
+          <div className="gauge-num" style={{ fontSize: 30, fontWeight: 700, marginTop: 16, lineHeight: 1 }}>{value}<span style={{ fontSize: 15, color: "var(--muted)", fontWeight: 500 }}>{suffix}</span></div>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 7 }}>{label}</div>
+        </>
+      )}
     </div>
   );
 }
+const DASH_DEFAULT = [
+  { icon: Briefcase, label: "Kasus Aktif", value: "37", suffix: "", delta: "12%" },
+  { icon: TrendingUp, label: "Rata-rata Win-Rate", value: "68", suffix: "%", delta: "4%" },
+  { icon: Clock, label: "Tenggat Minggu Ini", value: "9", suffix: "", delta: "2" },
+  { icon: Users, label: "Klien Korporat", value: "24", suffix: "", delta: "3" },
+];
+
 function Dashboard() {
+  const [metrics, setMetrics] = useState(DASH_DEFAULT);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          const r = await window.storage.get("dash:metrics");
+          if (alive && r && r.value) {
+            const saved = JSON.parse(r.value);
+            setMetrics(DASH_DEFAULT.map((d, idx) => ({ ...d, ...(saved[idx] || {}), icon: d.icon })));
+          }
+        }
+      } catch (e) { /* abaikan, pakai default */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const update = (idx, field, val) =>
+    setMetrics((ms) => ms.map((m, j) => (j === idx ? { ...m, [field]: val } : m)));
+
+  const save = async () => {
+    setEditing(false);
+    try {
+      if (typeof window !== "undefined" && window.storage) {
+        const payload = metrics.map(({ label, value, suffix, delta }) => ({ label, value, suffix, delta }));
+        await window.storage.set("dash:metrics", JSON.stringify(payload));
+      }
+    } catch (e) { /* abaikan */ }
+  };
+
+  const resetDefault = () => setMetrics(DASH_DEFAULT.map((d) => ({ ...d })));
+
   return (
     <div className="view-enter page scrollbar">
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        {editing && (
+          <button className="btn-ghost" onClick={resetDefault} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <History size={14} /> Reset
+          </button>
+        )}
+        <button
+          className={editing ? "btn-primary" : "btn-ghost"}
+          onClick={() => (editing ? save() : setEditing(true))}
+          style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}
+        >
+          {editing ? (<><CheckCircle2 size={15} /> Simpan</>) : (<><Settings size={15} /> Edit Data</>)}
+        </button>
+      </div>
       <div className="metric-grid">
-        <Metric i={0} icon={Briefcase} label="Kasus Aktif" value="37" delta="12%" />
-        <Metric i={1} icon={TrendingUp} label="Rata-rata Win-Rate" value="68" suffix="%" delta="4%" />
-        <Metric i={2} icon={Clock} label="Tenggat Minggu Ini" value="9" delta="2" />
-        <Metric i={3} icon={Users} label="Klien Korporat" value="24" delta="3" />
+        {metrics.map((m, idx) => (
+          <Metric
+            key={idx} i={idx} icon={m.icon} label={m.label} value={m.value}
+            suffix={m.suffix} delta={m.delta} editing={editing}
+            onChange={(field, val) => update(idx, field, val)}
+          />
+        ))}
       </div>
       <div className="two-col">
         <div className="glass glass-hover rise" style={{ padding: 24, animationDelay: ".25s" }}>
