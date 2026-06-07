@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./KNSLLegalIntelligence.jsx";
+// KITA UBAH DI SINI: Langsung panggil MainLayout dari Claude sebagai tampilan utama
+import App from "./MainLayout.jsx";
 
 /* ----------------------------------------------------------------
    Aktifkan AI Counsel di luar Claude: arahkan panggilan AI ke proxy
