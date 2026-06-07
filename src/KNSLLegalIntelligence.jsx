@@ -181,7 +181,7 @@ const ALLEGED_RE = /diduga|diperkirakan|kemungkinan|disinyalir|diindikasikan|kon
 const EXTLABEL_RE = /menetapkan.*tersangka|sebagai tersangka|menurut (polisi|kepolisian|keterangan)|polisi menyatakan|dinyatakan.*tersangka/i;
 
 function extractFacts(text) {
-  const sents = text.replace(/\n+/g, ". ").split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 12);
+  const sents = text.replace(/\n+/g, ". ").replace(/([.!?])\s+/g, "$1\u0001").split("\u0001").map((s) => s.trim()).filter((s) => s.length > 12);
   const facts = sents.map((s, i) => ({
     id: `fact_${String(i + 1).padStart(2, "0")}`,
     category: detectCat(s),
