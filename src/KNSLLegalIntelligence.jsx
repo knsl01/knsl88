@@ -700,7 +700,7 @@ const STYLES = `
     padding-bottom:104px !important;max-width:100vw;}
 
   /* Topbar: reduce excessive top space */
-  .topbar{padding:10px 16px 8px !important;gap:8px !important;flex-shrink:0;}
+  .topbar{padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 8px !important;gap:8px !important;flex-shrink:0;}
   .topbar h1{font-size:22px !important;}
   .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:3px !important;}
 
@@ -718,7 +718,7 @@ const STYLES = `
     padding-top:max(env(safe-area-inset-top,16px),20px) !important;}
 
   /* Glass cards: prevent overflow */
-  .glass{max-width:100%;overflow:hidden;word-break:break-word;}
+  .glass{max-width:100%;overflow:hidden;overflow-wrap:break-word;word-break:normal;hyphens:none;}
 
   /* Tables: scroll horizontally if needed */
   .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
