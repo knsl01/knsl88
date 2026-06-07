@@ -5,32 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>KNSL Legal Intelligence</title>
 
-    <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1fb37e" />
+    <meta name="theme-color" content="#0c1209" />
 
-    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="KNSL Legal" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ink: '#0A0A0A',
+              panel: '#121212',
+              emerald: {
+                DEFAULT: '#10B981',
+                soft: '#34D399',
+                deep: '#0B6E50',
+              },
+              gold: {
+                DEFAULT: '#D4AF37',
+                soft: '#E7CE7A',
+                deep: '#9A7B22',
+              },
+            },
+            fontFamily: {
+              display: ['"Playfair Display"', 'Georgia', 'serif'],
+              sans: ['Manrope', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'monospace'],
+            },
+          },
+        },
+      };
+    </script>
 
     <style>
-      html, body, #root { height: 100%; margin: 0; }
-      /* Safe area padding for iPhone notch */
-      #root { padding-top: env(safe-area-inset-top); }
+      html, body { 
+        margin: 0; 
+        padding: 0; 
+        background: #050505; 
+        -webkit-font-smoothing: antialiased; 
+        height: 100%;
+      }
+      
+      /* Mengunci tinggi layar agar pas di desktop dan iOS screen */
+      #root { 
+        width: 100vw; 
+        height: 100%;
+        min-height: 100vh; 
+        padding-top: env(safe-area-inset-top); 
+      }
+      
+      /* Sembunyikan scrollbar bawaan agar frame buatan Claude rapi */
+      .knsl-scroll::-webkit-scrollbar { width: 0; height: 0; }
+      .knsl-scroll { scrollbar-width: none; }
+      
+      /* Animasi Transisi dari Claude */
+      @keyframes knslFade { from { transform: translateY(9px); } to { transform: translateY(0); } }
+      @keyframes knslSlideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+      @keyframes knslPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+      @keyframes knslSheen { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+      .knsl-fade { animation: knslFade 0.45s cubic-bezier(0.22,1,0.36,1) both; }
     </style>
   </head>
   <body>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
     <script>
       if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch((err) => {
+            console.log("Service Worker registration failed: ", err);
+          });
+        });
       }
     </script>
   </body>
