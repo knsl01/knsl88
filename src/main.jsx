@@ -25,17 +25,33 @@ if (typeof document !== "undefined") {
     vp.name = "viewport";
     document.head.appendChild(vp);
   }
-  // viewport-fit=cover hanya di mode standalone (PWA di layar utama).
-  // Di Safari biasa, env(safe-area-inset-top)=0 sehingga cover akan
-  // mendorong konten ke bawah Dynamic Island → header ketutup. Tanpa
-  // cover, Safari otomatis menaruh konten di dalam safe area.
-  const standalone =
-    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
-    window.navigator.standalone === true;
-  vp.setAttribute(
-    "content",
-    "width=device-width, initial-scale=1" + (standalone ? ", viewport-fit=cover" : "")
-  );
+  // viewport-fit=cover + padding safe-area di CSS (theme.jsx) agar header
+  // tidak tertutup status bar / Dynamic Island di Safari iOS.
+  vp.setAttribute("content", "width=device-width, initial-scale=1, viewport-fit=cover");
+}
+
+/** iOS Safari: ukur safe-area & set fallback bila env() = 0 */
+function applySafeAreaInsets() {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;" +
+    "padding-top:constant(safe-area-inset-top);padding-top:env(safe-area-inset-top)";
+  document.body.appendChild(probe);
+  let sat = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  probe.remove();
+  const ios =
+    /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (sat < 1 && ios) sat = 20;
+  root.style.setProperty("--knsl-safe-top", `${sat}px`);
+}
+
+if (typeof window !== "undefined") {
+  applySafeAreaInsets();
+  window.addEventListener("resize", applySafeAreaInsets);
+  window.visualViewport?.addEventListener("resize", applySafeAreaInsets);
 }
 
 /* ---------- Per-user storage polyfill ---------- */

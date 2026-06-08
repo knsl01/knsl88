@@ -413,7 +413,7 @@ export const AUTH_STYLES = `
   .auth-mobile-brand { display: block; }
   .auth-form-panel {
     padding: 24px 20px 40px;
-    padding-top: max(24px, env(safe-area-inset-top));
+    padding-top: calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 20px);
     align-items: flex-start;
   }
 }

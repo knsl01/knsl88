@@ -2,7 +2,7 @@ import React from "react";
 
 export const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap');
-:root{--void:#080a09;--charcoal:#101413;--line:rgba(212,189,138,0.12);--emerald:#13855c;--emerald-bright:#1fb37e;--emerald-deep:#0c4a33;--champagne:#d8c08a;--champagne-soft:#e7d6ac;--silver:#c4cfca;--text:#eef2ef;--muted:#7e8c86;--muted-2:#5c6863;--glass:rgba(22,27,25,0.55);}
+:root{--void:#080a09;--charcoal:#101413;--line:rgba(212,189,138,0.12);--emerald:#13855c;--emerald-bright:#1fb37e;--emerald-deep:#0c4a33;--champagne:#d8c08a;--champagne-soft:#e7d6ac;--silver:#c4cfca;--text:#eef2ef;--muted:#7e8c86;--muted-2:#5c6863;--glass:rgba(22,27,25,0.55);--knsl-safe-top:env(safe-area-inset-top,0px);}
 *{box-sizing:border-box;}
 .knsl{font-family:'Hanken Grotesk',sans-serif;background:radial-gradient(900px 600px at 85% -10%,rgba(19,133,92,0.10),transparent 60%),radial-gradient(700px 500px at 5% 110%,rgba(216,192,138,0.05),transparent 55%),var(--void);color:var(--text);min-height:100vh;width:100%;-webkit-font-smoothing:antialiased;}
 .serif{font-family:'Cormorant Garamond',serif;}
@@ -65,7 +65,6 @@ export const STYLES = `
   .backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(2px);z-index:50;animation:fadeIn .3s ease;}
   .topbar-search{display:none;}
   .page{padding:0 16px 36px;}
-  .topbar{padding:16px 16px 14px;}
   .two-col,.analysis-grid,.drafting-grid{grid-template-columns:1fr;}
   .cr-grid{grid-template-columns:1fr !important;}
   .cr-sum{grid-template-columns:1fr !important;}
@@ -90,10 +89,6 @@ export const STYLES = `
     box-shadow:0 12px 36px -24px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.04);}
   .glass-hover:hover{transform:translateY(-2px);border-color:rgba(212,175,55,0.3);
     box-shadow:0 18px 50px -22px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.05);}
-
-  /* === Topbar: premium mobile header === */
-  .topbar{padding:calc(env(safe-area-inset-top,16px) + 12px) 16px 14px;gap:10px;}
-  .topbar h1{font-size:24px !important;}
 
   /* === Buttons: larger, rounded, glow === */
   .btn-primary{border-radius:16px;padding:14px 22px;font-size:15.5px;font-weight:700;
@@ -173,14 +168,29 @@ export const STYLES = `
     -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
     padding-bottom:104px !important;max-width:100vw;}
 
-  /* Topbar: reduce excessive top space */
-  .topbar{padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 10px !important;gap:8px !important;flex-shrink:0;}
-  .topbar h1{font-size:22px !important;}
-  .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:3px !important;}
+  /* Topbar + sidebar: safe-area selaras (status bar / Dynamic Island) */
+  .topbar{
+    padding-top:calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 12px) !important;
+    padding-right:16px !important;
+    padding-bottom:12px !important;
+    padding-left:16px !important;
+    gap:10px !important;
+    flex-shrink:0;
+    align-items:center;
+    position:relative;
+    z-index:10;
+  }
+  .topbar h1{font-size:22px !important;line-height:1.15 !important;}
+  .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:4px !important;}
+  .hamburger{align-self:flex-start;margin-top:2px;}
 
-  /* Sidebar: proper safe-area */
-  .sidebar{padding-top:calc(env(safe-area-inset-top,0px) + 16px) !important;
-    height:100vh !important;height:100dvh !important;}
+  .sidebar{
+    padding-top:calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 20px) !important;
+    padding-left:18px !important;
+    padding-right:18px !important;
+    height:100vh !important;
+    height:100dvh !important;
+  }
 
   /* Prevent horizontal overflow */
   .view-enter,.analysis-grid,.drafting-grid,.two-col,.cr-grid{
@@ -189,7 +199,7 @@ export const STYLES = `
 
   /* Login screen: scroll if needed, centered */
   .login-screen{min-height:100dvh;overflow-y:auto;overflow-x:hidden;
-    padding-top:calc(env(safe-area-inset-top,0px) + 20px) !important;}
+    padding-top:calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 20px) !important;}
 
   /* Glass cards: prevent overflow */
   .glass{max-width:100%;overflow:hidden;overflow-wrap:break-word;word-break:normal;hyphens:none;}
