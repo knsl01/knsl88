@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
       password,
       options: {
         data: { full_name: fullName.trim(), username: (username || email.split("@")[0]).trim().toLowerCase() },
-        emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
     if (error) throw error;
@@ -114,7 +114,7 @@ export function AuthProvider({ children }) {
   const resetPassword = async (email) => {
     if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: `${window.location.origin}${window.location.pathname}`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) throw error;
   };

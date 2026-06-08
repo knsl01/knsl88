@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Mail } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
@@ -7,9 +8,12 @@ import AuthButton from "../components/AuthButton.jsx";
 import AuthAlert from "../components/AuthAlert.jsx";
 import { validateEmail, validatePassword } from "../utils/validation.js";
 import { formatAuthError } from "../utils/errors.js";
+import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
-export default function LoginPage({ onNavigate }) {
+export default function LoginPage() {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -30,6 +34,8 @@ export default function LoginPage({ onNavigate }) {
     setLoading(true);
     try {
       await signIn(email, password);
+      const redirectTo = location.state?.from?.pathname || DEFAULT_AUTHENTICATED_ROUTE;
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(formatAuthError(err));
     } finally {
@@ -72,7 +78,7 @@ export default function LoginPage({ onNavigate }) {
 
         <div className="auth-row-between">
           <span />
-          <button type="button" className="auth-link" onClick={() => onNavigate("forgot")}>
+          <button type="button" className="auth-link" onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}>
             Lupa password?
           </button>
         </div>
@@ -84,7 +90,7 @@ export default function LoginPage({ onNavigate }) {
 
       <p style={{ textAlign: "center", fontSize: 14, color: "var(--auth-muted)", margin: 0 }}>
         Belum punya akun?{" "}
-        <button type="button" className="auth-link" onClick={() => onNavigate("signup")}>
+        <button type="button" className="auth-link" onClick={() => navigate(ROUTES.SIGNUP)}>
           Daftar sekarang
         </button>
       </p>

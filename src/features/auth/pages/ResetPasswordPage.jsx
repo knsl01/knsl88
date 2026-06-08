@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
@@ -7,9 +8,11 @@ import AuthAlert from "../components/AuthAlert.jsx";
 import PasswordStrength from "../components/PasswordStrength.jsx";
 import { validatePassword, validatePasswordMatch } from "../utils/validation.js";
 import { formatAuthError } from "../utils/errors.js";
+import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
-export default function ResetPasswordPage({ onNavigate }) {
+export default function ResetPasswordPage() {
   const { updatePassword } = useAuth();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -33,8 +36,8 @@ export default function ResetPasswordPage({ onNavigate }) {
     try {
       await updatePassword(password);
       setSuccess("Password berhasil diperbarui.");
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      setTimeout(() => onNavigate("login"), 1500);
+      window.history.replaceState(null, "", ROUTES.RESET_PASSWORD);
+      setTimeout(() => navigate(DEFAULT_AUTHENTICATED_ROUTE, { replace: true }), 1500);
     } catch (err) {
       setError(formatAuthError(err));
     } finally {

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Mail, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
@@ -7,9 +8,11 @@ import AuthButton from "../components/AuthButton.jsx";
 import AuthAlert from "../components/AuthAlert.jsx";
 import { validateEmail } from "../utils/validation.js";
 import { formatAuthError } from "../utils/errors.js";
+import { ROUTES } from "../../../routes/paths.js";
 
-export default function ForgotPasswordPage({ onNavigate }) {
+export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState("");
@@ -59,7 +62,12 @@ export default function ForgotPasswordPage({ onNavigate }) {
         <AuthButton loading={loading}>Kirim link reset</AuthButton>
       </form>
 
-      <button type="button" className="auth-btn-ghost" onClick={() => onNavigate("login")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <button
+        type="button"
+        className="auth-btn-ghost"
+        onClick={() => navigate(ROUTES.LOGIN)}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+      >
         <ArrowLeft size={16} /> Kembali ke masuk
       </button>
     </AuthLayout>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Mail, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
@@ -13,9 +14,11 @@ import {
   validateRequired,
 } from "../utils/validation.js";
 import { formatAuthError } from "../utils/errors.js";
+import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
-export default function SignupPage({ onNavigate }) {
+export default function SignupPage() {
   const { signUp } = useAuth();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,9 +51,9 @@ export default function SignupPage({ onNavigate }) {
       const r = await signUp({ email, password, fullName, username });
       if (r.needsEmailConfirmation) {
         setSuccess("Akun dibuat. Cek email Anda untuk konfirmasi, lalu masuk.");
-        setTimeout(() => onNavigate("login"), 2500);
+        setTimeout(() => navigate(ROUTES.LOGIN, { replace: true }), 2500);
       } else {
-        setSuccess("Akun berhasil dibuat. Mengalihkan…");
+        navigate(DEFAULT_AUTHENTICATED_ROUTE, { replace: true });
       }
     } catch (err) {
       setError(formatAuthError(err));
@@ -74,13 +77,13 @@ export default function SignupPage({ onNavigate }) {
           value={fullName}
           onChange={(e) => { setFullName(e.target.value); setFieldErrors((f) => ({ ...f, fullName: null })); }}
           error={fieldErrors.fullName}
-          placeholder="Adv. Nama Lengkap"
+          placeholder="Adv. Nama Anda"
           autoComplete="name"
           icon={User}
           disabled={loading}
         />
         <AuthField
-          label="Email"
+          label="Email profesional"
           name="email"
           type="email"
           value={email}
@@ -92,11 +95,11 @@ export default function SignupPage({ onNavigate }) {
           disabled={loading}
         />
         <AuthField
-          label="Firma / kantor (opsional)"
-          name="firm"
+          label="Nama firma (opsional)"
+          name="firmName"
           value={firmName}
           onChange={(e) => setFirmName(e.target.value)}
-          placeholder="KNSL & Rekan"
+          placeholder="Kantor Hukum …"
           disabled={loading}
         />
         <AuthField
@@ -130,7 +133,7 @@ export default function SignupPage({ onNavigate }) {
 
       <p style={{ textAlign: "center", fontSize: 14, color: "var(--auth-muted)", margin: 0 }}>
         Sudah punya akun?{" "}
-        <button type="button" className="auth-link" onClick={() => onNavigate("login")}>
+        <button type="button" className="auth-link" onClick={() => navigate(ROUTES.LOGIN)}>
           Masuk
         </button>
       </p>

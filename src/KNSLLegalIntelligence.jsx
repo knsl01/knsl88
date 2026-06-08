@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Scale, FileSignature, BookOpen, ShieldCheck,
   Search, Bell, Menu, X, ChevronRight, Gavel, Clock,
@@ -20,6 +21,9 @@ import { isSupabaseConfigured } from "./lib/supabase.js";
 import { saveCaseAnalysisCloud, saveContractReviewCloud } from "./services/supabaseData.js";
 import ProfilePanel from "./components/profile/ProfilePanel.jsx";
 import Dashboard from "./features/dashboard/Dashboard.jsx";
+import { useLocalUser } from "./hooks/useLocalUser.js";
+import { storeUser, clearStoredUser } from "./lib/localAuth.js";
+import { ACTIVE_TO_ROUTE, ROUTES, routeToActive } from "./routes/paths.js";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -572,21 +576,6 @@ async function hashPW(pw) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-function getStoredUser() {
-  try { const raw = localStorage.getItem("knsl:auth"); return raw ? JSON.parse(raw) : null; } catch { return null; }
-}
-
-function storeUser(user) {
-  localStorage.setItem("knsl:auth", JSON.stringify(user));
-  if (typeof window !== "undefined") window.__KNSL_USER_ID__ = user.id;
-}
-
-function clearStoredUser() {
-  localStorage.removeItem("knsl:auth");
-  clearToken();
-  if (typeof window !== "undefined") window.__KNSL_USER_ID__ = "";
-}
-
 function persistCaseAnalysis(data) {
   if (isSupabaseConfigured) saveCaseAnalysisCloud(data).catch(() => {});
   else if (getToken()) saveCaseAnalysis(data).catch(() => {});
@@ -607,7 +596,7 @@ function saveAccount(username, data) {
   localStorage.setItem("knsl:accounts", JSON.stringify(accs));
 }
 
-function LoginScreen({ onLogin }) {
+export function LoginScreen({ onLogin }) {
   const hasAccounts = Object.keys(getAccounts()).length > 0;
   const [mode, setMode] = useState(hasAccounts ? "login" : "register");
   const [name, setName] = useState("");
@@ -778,7 +767,7 @@ function LoginScreen({ onLogin }) {
 }
 
 /* ---------- sidebar ---------- */
-function Sidebar({ active, setActive, open, onClose, user, onLogout }) {
+function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
   const items = [
     { id: "dashboard", label: "Executive Overview", icon: LayoutDashboard },
     { id: "analysis", label: "Legal Analysis Engine", icon: Scale },
@@ -789,7 +778,7 @@ function Sidebar({ active, setActive, open, onClose, user, onLogout }) {
     { id: "conflict", label: "Conflict Check", icon: ShieldCheck },
     { id: "profile", label: "Profil Akun", icon: User },
   ];
-  const pick = (id) => { setActive(id); onClose(); };
+  const pick = (id) => { onNavigate(id); onClose(); };
   return (
     <aside className={`glass sidebar ${open ? "open" : ""}`} style={{ borderRadius: 0 }}>
       <div className="sidebar-brand">
@@ -3174,7 +3163,7 @@ function ScanDoc({ onSend }) {
   );
 }
 
-function MobileTabBar({ active, setActive }) {
+function MobileTabBar({ active, onNavigate }) {
   const items = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
     { id: "analysis", label: "Analisa", icon: Scale },
@@ -3188,7 +3177,7 @@ function MobileTabBar({ active, setActive }) {
         const Icon = it.icon;
         const on = active === it.id;
         return (
-          <button key={it.id} className={"mtab " + (on ? "active" : "")} onClick={() => setActive(it.id)} aria-label={it.label}>
+          <button key={it.id} className={"mtab " + (on ? "active" : "")} onClick={() => onNavigate(it.id)} aria-label={it.label}>
             <Icon size={21} strokeWidth={on ? 2.1 : 1.7} />
             <span>{it.label}</span>
           </button>
@@ -3213,17 +3202,26 @@ function getHariTanggal(d = new Date()) {
 
 export default function App() {
   const { isSupabase, user: supaUser, signOut } = useAuth();
-  const [localUser, setLocalUser] = useState(() => {
-    if (isSupabaseConfigured) return null;
-    const u = getStoredUser();
-    if (u && typeof window !== "undefined") window.__KNSL_USER_ID__ = u.id;
-    return u;
-  });
+  const localUser = useLocalUser();
   const user = isSupabase ? supaUser : localUser;
-  const [active, setActive] = useState("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeFromRoute = useMemo(() => routeToActive(location.pathname), [location.pathname]);
+  const [active, setActive] = useState(activeFromRoute);
   const [dashEditing, setDashEditing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [seed, setSeed] = useState(null);
+
+  useEffect(() => {
+    setActive(activeFromRoute);
+    if (activeFromRoute !== "dashboard") setDashEditing(false);
+  }, [activeFromRoute]);
+
+  const goTo = useCallback((id) => {
+    const path = ACTIVE_TO_ROUTE[id] || ROUTES.APP;
+    navigate(path);
+  }, [navigate]);
+
   const meta = {
     dashboard: ["Executive Overview", "Dasbor · " + getHariTanggal()],
     analysis: ["Legal Analysis Engine", "Analisa Kasus & Ekstraksi Pasal"],
@@ -3236,13 +3234,13 @@ export default function App() {
   };
   const logout = async () => {
     if (isSupabase) await signOut();
-    else { clearStoredUser(); setLocalUser(null); }
+    else clearStoredUser();
+    navigate(ROUTES.LOGIN, { replace: true });
   };
-  if (!isSupabase && !user) return <LoginScreen onLogin={setLocalUser} />;
-  const globalSearch = (q) => { setSeed({ q, n: Date.now() }); setActive("analysis"); setNavOpen(false); };
+  const globalSearch = (q) => { setSeed({ q, n: Date.now() }); goTo("analysis"); setNavOpen(false); };
   const sendIntake = (target, text, name) => {
-    if (target === "contract") { if (typeof window !== "undefined") window.__KNSL_INTAKE__ = { text, name }; setActive("contract"); }
-    else if (target === "analysis") { setSeed({ q: text, n: Date.now() }); setActive("analysis"); }
+    if (target === "contract") { if (typeof window !== "undefined") window.__KNSL_INTAKE__ = { text, name }; goTo("contract"); }
+    else if (target === "analysis") { setSeed({ q: text, n: Date.now() }); goTo("analysis"); }
     setNavOpen(false);
   };
   return (
@@ -3250,7 +3248,7 @@ export default function App() {
       <style>{STYLES}</style>
       <div className="shell">
         {navOpen && <div className="backdrop" onClick={() => setNavOpen(false)} />}
-        <Sidebar active={active} setActive={setActive} open={navOpen} onClose={() => setNavOpen(false)} user={user} onLogout={logout} />
+        <Sidebar active={active} onNavigate={goTo} open={navOpen} onClose={() => setNavOpen(false)} user={user} onLogout={logout} />
         <main className="main">
           <Topbar
             title={meta[active][0]} subtitle={meta[active][1]}
@@ -3278,7 +3276,7 @@ export default function App() {
           </div>
         </main>
       </div>
-      <MobileTabBar active={active} setActive={setActive} />
+      <MobileTabBar active={active} onNavigate={goTo} />
     </div>
   );
 }
