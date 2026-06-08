@@ -70,9 +70,21 @@ Di aplikasi: tab **Nomor HP** → masukkan `0812…` → terima SMS → masukkan
 | **Sudah pernah** jalankan `JALANKAN-SEMUA.sql` | `migrations/20240609120000_oauth_phone_profiles.sql` (file kecil ~50 baris) |
 
 **Cara jalankan (sama untuk kedua file):**
-1. Supabase → **SQL Editor** → **New query**
-2. Buka file di GitHub/repo → **Copy semua** → **Paste** → **Run**
-3. Harus muncul **Success**
+
+> File `.sql` di GitHub **tidak di-upload** ke Supabase. Anda **copy isi teksnya** lalu paste di SQL Editor.
+
+1. Login https://supabase.com → pilih **project** KNSL Anda
+2. Menu kiri (sidebar) → klik **SQL Editor** (ikon `</>` atau tulisan SQL)
+3. Buat query baru — tombolnya bisa bernama:
+   - **+ New query**, atau
+   - **New**, atau
+   - **+** di pojok kanan atas area editor  
+   (UI Supabase kadang beda; yang penting ada **kotak kosong** untuk mengetik SQL)
+4. **Copy semua** isi file `.sql` dari repo → **Paste** di kotak itu
+5. Klik **Run** (hijau, kanan bawah) atau `Ctrl+Enter`
+6. Harus muncul **Success** / **Success. No rows returned**
+
+Kalau menu **SQL Editor** tidak kelihatan: sidebar → **Project** → scroll ke bawah, atau perkecil zoom browser (Ctrl + minus).
 
 File kecil itu hanya memperbarui aturan “saat user baru daftar (Google/HP), buat baris di tabel `profiles`”. Bukan dua file yang wajib keduanya.
 
