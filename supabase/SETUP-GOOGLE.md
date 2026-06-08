@@ -36,23 +36,42 @@ User klik "Masuk dengan Google" di knsl.tech/login
 
 ### 2. OAuth consent screen (wajib)
 
-1. Menu **APIs & Services** → **OAuth consent screen**
-2. User type: **External** (untuk Gmail publik)
-3. Isi:
-   - **App name:** `KNSL Legal Intelligence` (atau nama Anda)
-   - **User support email:** email Anda
+Google sekarang pakai menu **Google Auth Platform** (UI baru). Jika tidak ketemu "Scopes" di wizard — **boleh dilewati**; Supabase otomatis minta `email`, `profile`, `openid` saat login.
+
+#### 2a. Setup dasar (wizard)
+
+1. Buka https://console.cloud.google.com → pilih project KNSL
+2. Menu ☰ → **Google Auth Platform** (atau **APIs & Services** → **OAuth consent screen** di UI lama)
+3. Jika muncul **Get started** → klik, lalu isi:
+   - **App name:** `KNSL Legal Intelligence`
+   - **User support email:** email Gmail Anda
    - **Developer contact:** email Anda
-4. **Scopes** → Add → pilih:
+4. **Audience** → pilih **External** → Continue
+5. Halaman **Scopes** / **Data Access** di wizard:
+   - **Tidak ketemu scope?** Klik **Save and Continue** saja (lewati) — ini normal di UI baru
+6. **Test users** (wajib saat status *Testing*):
+   - Menu **Google Auth Platform** → **Audience**
+   - **Test users** → **Add users** → masukkan Gmail Anda → **Save**
+   - Tanpa ini: *"Access blocked: app has not completed verification"*
+
+#### 2b. (Opsional) Tambah scope manual — hanya jika mau
+
+Jika ingin menambah scope sendiri (biasanya **tidak wajib** untuk login Supabase):
+
+1. **Google Auth Platform** → **Data Access**
+2. **Add or Remove Scopes**
+3. Di kotak **Filter**, ketik `userinfo` → centang:
    - `.../auth/userinfo.email`
    - `.../auth/userinfo.profile`
-   - `openid`
-5. **Test users** (penting saat status *Testing*):
-   - Klik **Add users**
-   - Tambahkan **alamat Gmail** yang akan dipakai untuk tes login
-   - Tanpa ini, Google menolak: *"Access blocked: app has not completed verification"*
-6. **Save**
+4. Atau di bagian bawah **Manually add scopes**, paste satu per baris:
+   ```
+   https://www.googleapis.com/auth/userinfo.email
+   https://www.googleapis.com/auth/userinfo.profile
+   openid
+   ```
+5. Klik **Update** → **Save**
 
-> Status **Testing** cukup untuk development & tim kecil (maks ~100 test user). Untuk publik luas, nanti ajukan **Publish app**.
+> Status **Testing** cukup untuk development (maks ~100 test user). Untuk publik luas, nanti ajukan **Publish app**.
 
 ### 3. Buat OAuth Client ID
 
