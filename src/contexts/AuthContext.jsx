@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const loadProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null;
@@ -38,14 +39,8 @@ export function AuthProvider({ children }) {
 
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    const applySession = async (s) => {
       if (!mounted) return;
-      setSession(s);
-      if (s?.user) loadProfile(s.user.id).finally(() => mounted && setLoading(false));
-      else setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
       setSession(s);
       if (s?.user) {
         await loadProfile(s.user.id);
@@ -54,6 +49,19 @@ export function AuthProvider({ children }) {
         setProfile(null);
         if (typeof window !== "undefined") window.__KNSL_USER_ID__ = "";
       }
+    };
+
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      await applySession(s);
+      if (mounted) setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+      if (event === "INITIAL_SESSION") return;
+      await applySession(s);
+      if (event === "SIGNED_OUT") setRecoveryMode(false);
+      if (mounted && event !== "TOKEN_REFRESHED") setLoading(false);
     });
 
     return () => {
@@ -97,6 +105,7 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     if (!supabase) return;
+    setRecoveryMode(false);
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
@@ -114,6 +123,7 @@ export function AuthProvider({ children }) {
     if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
+    setRecoveryMode(false);
   };
 
   const updateProfile = async (fields) => {
@@ -143,6 +153,7 @@ export function AuthProvider({ children }) {
   const value = {
     isSupabase: isSupabaseConfigured,
     loading,
+    recoveryMode,
     session,
     profile,
     user,

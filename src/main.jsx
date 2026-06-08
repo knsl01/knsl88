@@ -10,7 +10,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./KNSLLegalIntelligence.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
-import AuthGate from "./components/auth/AuthGate.jsx";
+import AuthGate from "./features/auth/AuthGate.jsx";
 
 if (typeof window !== "undefined") {
   window.__AI_PROXY__ = "/api/ai";
