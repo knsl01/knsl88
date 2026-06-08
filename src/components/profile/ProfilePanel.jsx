@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { User, Mail, Building2, Phone, Lock, Save, LogOut } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { User, Mail, Building2, Phone, Lock, Save, LogOut, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 
 export default function ProfilePanel({ onClose }) {
@@ -12,28 +12,44 @@ export default function ProfilePanel({ onClose }) {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const toastRef = useRef(null);
+
+  useEffect(() => {
+    if (!msg && !err) return;
+    toastRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const t = setTimeout(() => { setMsg(""); setErr(""); }, 5000);
+    return () => clearTimeout(t);
+  }, [msg, err]);
 
   const saveProfile = async () => {
-    setBusy(true); setErr(""); setMsg("");
+    setBusy(true);
+    setErr("");
+    setMsg("");
     try {
       await updateProfile({ fullName, username, firmName, phone });
-      setMsg("Profil disimpan.");
+      setMsg("Data profil berhasil disimpan.");
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Gagal menyimpan profil.");
     } finally {
       setBusy(false);
     }
   };
 
   const changePassword = async () => {
-    if (newPw.length < 6) { setErr("Password minimal 6 karakter."); return; }
-    setBusy(true); setErr(""); setMsg("");
+    if (newPw.length < 6) {
+      setErr("Password minimal 6 karakter.");
+      setMsg("");
+      return;
+    }
+    setBusy(true);
+    setErr("");
+    setMsg("");
     try {
       await updatePassword(newPw);
       setNewPw("");
-      setMsg("Password diperbarui.");
+      setMsg("Password berhasil diperbarui.");
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Gagal mengubah password.");
     } finally {
       setBusy(false);
     }
@@ -46,6 +62,21 @@ export default function ProfilePanel({ onClose }) {
           <User size={20} className="gold-text" />
           <h2 className="serif" style={{ margin: 0, fontSize: 22 }}>Profil Akun</h2>
           {onClose && <span className="chip" style={{ marginLeft: "auto" }} onClick={onClose}>Tutup</span>}
+        </div>
+
+        <div ref={toastRef}>
+          {msg && (
+            <div className="profile-toast profile-toast-success" role="status" aria-live="polite">
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+              <span>{msg}</span>
+            </div>
+          )}
+          {err && (
+            <div className="profile-toast profile-toast-error" role="alert">
+              <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+              <span>{err}</span>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "grid", gap: 12 }}>
@@ -74,9 +105,6 @@ export default function ProfilePanel({ onClose }) {
           <label style={{ fontSize: 12, color: "var(--muted)" }}><Lock size={12} /> Password baru</label>
           <input className="field" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min. 6 karakter" />
           <button className="btn-ghost" onClick={changePassword} disabled={busy || !newPw}>Ubah Password</button>
-
-          {msg && <p style={{ color: "var(--emerald-bright)", fontSize: 13, margin: 0 }}>{msg}</p>}
-          {err && <p style={{ color: "#ff9a8b", fontSize: 13, margin: 0 }}>{err}</p>}
 
           <button className="btn-ghost" style={{ marginTop: 12, color: "#ff9a8b", borderColor: "rgba(220,68,55,0.3)" }} onClick={() => signOut()}>
             <LogOut size={16} /> Keluar

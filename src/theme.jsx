@@ -44,7 +44,13 @@ export const STYLES = `
 
 /* layout */
 .shell{display:flex;}
-.sidebar{width:270px;flex-shrink:0;padding:26px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;background:rgba(16,20,19,0.7);}
+.sidebar{width:270px;flex-shrink:0;padding:26px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;background:rgba(16,20,19,0.7);overflow:hidden;min-height:0;}
+.sidebar-brand{flex-shrink:0;}
+.sidebar-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:0;}
+.sidebar-foot{flex-shrink:0;margin-top:12px;padding-bottom:4px;}
+.profile-toast{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;font-size:13px;font-weight:500;margin-bottom:16px;animation:fadeIn .35s ease both;}
+.profile-toast-success{color:var(--emerald-bright);background:rgba(31,179,126,0.1);border:1px solid rgba(31,179,126,0.3);}
+.profile-toast-error{color:#ff9a8b;background:rgba(220,68,55,0.1);border:1px solid rgba(220,68,55,0.28);}
 .main{flex:1;min-width:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 .page{padding:0 34px 40px;overflow-y:auto;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:24px 34px 20px;gap:16px;}
@@ -185,12 +191,15 @@ export const STYLES = `
   .hamburger{align-self:flex-start;margin-top:2px;}
 
   .sidebar{
-    padding-top:calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 20px) !important;
+    padding-top:calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 16px) !important;
     padding-left:18px !important;
     padding-right:18px !important;
+    padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
     height:100vh !important;
     height:100dvh !important;
+    overflow:hidden !important;
   }
+  .sidebar-scroll{padding-bottom:8px;}
 
   /* Prevent horizontal overflow */
   .view-enter,.analysis-grid,.drafting-grid,.two-col,.cr-grid{
