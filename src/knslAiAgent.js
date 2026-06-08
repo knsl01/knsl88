@@ -5,7 +5,7 @@
  * Design: heuristic floor + AI enrichment; strict JSON; retry; no verdicts.
  * ========================================================================== */
 
-import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError } from "./aiProviders.js";
+import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError } from "./aiProviders.js";
 
 export const DEFAULT_MODEL = "auto";
 
@@ -37,7 +37,8 @@ export async function callLLM({ system, user, maxTokens = 2000, provider, retrie
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        throw new Error(data.error || `AI HTTP ${resp.status}`);
+        const raw = data.error || `AI HTTP ${resp.status}`;
+        throw new Error(formatAiError(raw, prov));
       }
       const txt = String(data.text || "").trim();
       if (!txt) throw new Error("Respons AI kosong");
@@ -46,7 +47,7 @@ export async function callLLM({ system, user, maxTokens = 2000, provider, retrie
       return txt;
     } catch (e) {
       lastErr = e;
-      setLastAiError(String(e.message || e));
+      setLastAiError(formatAiError(e.message || e, prov));
       if (attempt < retries) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
     }
   }

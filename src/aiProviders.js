@@ -2,7 +2,7 @@
 
 export const AI_PROVIDERS = [
   { id: "auto", label: "Otomatis (gratis dulu)", free: true, hint: "Coba Gemini → Groq → Ollama → Claude" },
-  { id: "gemini", label: "Google Gemini", free: true, hint: "Gratis — API key di aistudio.google.com/apikey" },
+  { id: "gemini", label: "Google Gemini", free: true, hint: "Gratis terbatas/hari — aistudio.google.com/apikey. Kuota habis? Ganti ke Groq." },
   { id: "groq", label: "Groq (Llama)", free: true, hint: "Gratis — API key di console.groq.com" },
   { id: "ollama", label: "Ollama (lokal)", free: true, hint: "100% gratis — jalankan: ollama pull llama3.2" },
   { id: "claude", label: "Claude (Anthropic)", free: false, hint: "Berbayar per token" },
@@ -48,4 +48,20 @@ export function setLastAiError(msg) {
 
 export function getLastAiError() {
   return (typeof window !== "undefined" && window.__KNSL_AI_LAST_ERR__) || null;
+}
+
+/** Terjemahkan error API ke pesan yang mudah dipahami (ID). */
+export function formatAiError(raw, providerId) {
+  const m = String(raw || "").toLowerCase();
+  const name = getProviderLabel(providerId || getAiProvider());
+  if (m.includes("quota") || m.includes("exceeded") || m.includes("resource_exhausted") || m.includes("rate limit")) {
+    return `Kuota ${name} habis (limit gratis harian/bulanan). Solusi: (1) tunggu reset kuota ±24 jam, (2) ganti ke Groq di dropdown Provider AI + pasang GROQ_API_KEY di Vercel, (3) pakai Ollama lokal, atau (4) aktifkan billing di Google AI Studio.`;
+  }
+  if (m.includes("api key") || m.includes("invalid") || m.includes("permission")) {
+    return `API key ${name} tidak valid atau tidak punya izin. Buat key baru di dashboard provider, update di Vercel, lalu redeploy.`;
+  }
+  if (m.includes("ollama") || m.includes("econnrefused") || m.includes("11434")) {
+    return "Ollama tidak jalan di server. Untuk Vercel pakai Gemini/Groq. Ollama hanya untuk dev lokal (ollama serve).";
+  }
+  return String(raw || "AI gagal — cek provider dan API key.");
 }

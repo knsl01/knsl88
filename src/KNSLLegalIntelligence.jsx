@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
-import { getLastAiMeta, getLastAiError, getProviderLabel } from "./aiProviders.js";
+import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -1384,7 +1384,7 @@ function Analysis({ seed }) {
                       {" · "}Invarian {data.audit.passed}/{data.audit.total}
                     </>
                   ) : data.aiStatus === "error" ? (
-                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />AI gagal — pakai heuristik. {data.aiError || getLastAiError() || "Cek API key / provider."}</>
+                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />{formatAiError(data.aiError || getLastAiError(), getAiProvider())} <span style={{ color: "var(--muted)" }}>(hasil heuristik ditampilkan)</span></>
                   ) : data.aiStatus === "fallback" ? (
                     <><Info size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />{data.aiNote || "AI tidak meningkatkan hasil — pakai heuristik."}</>
                   ) : data.aiStatus === "off" ? (
@@ -3001,7 +3001,7 @@ function ContractReview() {
         ctx, usedAI: aiHits > 0, aiHits, aiError: crResult.aiError,
         clauses: reviewed, risk, dataPoints,
       };
-      if (useAI && !aiHits && crResult.aiError) setErr("AI gagal: " + crResult.aiError + " (hasil heuristik tetap ditampilkan)");
+      if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, getAiProvider()) + " (hasil heuristik tetap ditampilkan)");
       await crSaveRecord(record);
       await crAudit("analyze_contract", record.name + " · skor " + risk.score);
       setRec(record); setHistory(await crListIndex()); setStage("done"); setTab("summary");
