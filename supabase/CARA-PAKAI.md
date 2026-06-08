@@ -62,7 +62,19 @@ Di aplikasi, tombol **Masuk dengan Google** akan redirect ke Google lalu kembali
 
 Di aplikasi: tab **Nomor HP** → masukkan `0812…` → terima SMS → masukkan kode OTP.
 
-> Jalankan ulang `supabase/JALANKAN-SEMUA.sql` (atau migrasi `20240609120000_oauth_phone_profiles.sql`) agar profil user Google/HP tersimpan benar.
+### SQL untuk login Google / HP — pilih **satu** saja
+
+| Situasi Anda | Yang dijalankan di SQL Editor |
+|--------------|-------------------------------|
+| **Belum pernah** jalankan SQL KNSL | `JALANKAN-SEMUA.sql` (file besar, sekali saja) |
+| **Sudah pernah** jalankan `JALANKAN-SEMUA.sql` | `migrations/20240609120000_oauth_phone_profiles.sql` (file kecil ~50 baris) |
+
+**Cara jalankan (sama untuk kedua file):**
+1. Supabase → **SQL Editor** → **New query**
+2. Buka file di GitHub/repo → **Copy semua** → **Paste** → **Run**
+3. Harus muncul **Success**
+
+File kecil itu hanya memperbarui aturan “saat user baru daftar (Google/HP), buat baris di tabel `profiles`”. Bukan dua file yang wajib keduanya.
 
 ---
 
