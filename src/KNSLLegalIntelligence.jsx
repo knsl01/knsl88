@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
+import { getLastAiMeta, getLastAiError, getProviderLabel } from "./aiProviders.js";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -443,10 +444,11 @@ function buildFromAI(text, filter, raw) {
   return { fm, is, rs, etr, audit, passed: audit.passed, source: "ai" };
 }
 
-/* Always returns a valid pipeline result. Heuristic is the floor; AI agent upgrades
-   stages 1–2 (+ optional stage-3 rerank) only if audit does not regress. */
+/* Always returns a valid pipeline result. Heuristic is the floor; AI upgrades when audit OK. */
 async function aiRunPipeline(text, filter) {
-  const heur = runPipeline(text, filter); heur.source = "heuristic";
+  const heur = runPipeline(text, filter);
+  heur.source = "heuristic";
+  heur.aiStatus = "heuristic";
   try {
     const hint = {
       heuristicFacts: heur.fm.facts.map((f) => f.statement),
@@ -454,7 +456,11 @@ async function aiRunPipeline(text, filter) {
     };
     const raw = await aiAnalyzeChronology(text, hint);
     let built = buildFromAI(text, filter, raw);
-    if (!built || !built.fm.facts.length || !built.is.issues.length) return heur;
+    if (!built || !built.fm.facts.length || !built.is.issues.length) {
+      heur.aiStatus = "fallback";
+      heur.aiNote = "AI tidak menghasilkan fakta/isu valid — pakai heuristik.";
+      return heur;
+    }
 
     try {
       const reranked = await CaseAnalysisAgent.rerankStatutes(built.rs, built.fm.facts, built.is.issues);
@@ -463,14 +469,28 @@ async function aiRunPipeline(text, filter) {
         built.etr = testElements(built.rs, built.fm);
         built.audit = auditPipeline(built.fm, built.is, built.rs, built.etr);
         built.passed = built.audit.passed;
+        built.rsAiReranked = true;
       }
-    } catch (e) { /* rerank optional — keep deterministic retrieval */ }
+    } catch (e) { /* rerank optional */ }
 
-    const aiBetter = built.audit.passed > heur.audit.passed
-      || (built.audit.passed === heur.audit.passed && built.fm.facts.length >= heur.fm.facts.length);
-    if (aiBetter) { built.source = "ai"; return built; }
-  } catch (e) { /* network/parse/invalid → keep heuristic */ }
-  return heur;
+    if (built.audit.passed >= heur.audit.passed) {
+      built.source = "ai";
+      built.aiStatus = "ai";
+      built.heurCompare = {
+        facts: heur.fm.facts.length,
+        issues: heur.is.issues.length,
+        audit: heur.audit.passed,
+      };
+      return built;
+    }
+    heur.aiStatus = "fallback";
+    heur.aiNote = `AI audit ${built.audit.passed}/${built.audit.total} < heuristik ${heur.audit.passed}/${heur.audit.total} — pakai heuristik.`;
+    return heur;
+  } catch (e) {
+    heur.aiStatus = "error";
+    heur.aiError = String(e.message || e);
+    return heur;
+  }
 }
 
 function runPipeline(text, filter) {
@@ -727,6 +747,7 @@ const STYLES = `
 
   /* Glass cards: prevent overflow */
   .glass{max-width:100%;overflow:hidden;overflow-wrap:break-word;word-break:normal;hyphens:none;}
+  .ai-provider-wrap{overflow:visible !important;position:relative;z-index:5;}
 
   /* Tables: scroll horizontally if needed */
   .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -1261,17 +1282,25 @@ function Analysis({ seed }) {
   const [showGuards, setShowGuards] = useState(false);
   const [useAI, setUseAI] = useState(true);
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiWanted, setAiWanted] = useState(false);
 
   const doRun = async (input, flt) => {
     if (!input || !input.trim()) return;
-    setLoading(true); setAiBusy(false);
+    setLoading(true); setAiBusy(false); setAiWanted(useAI);
     await new Promise((r) => setTimeout(r, 250));
-    const heur = runPipeline(input, flt); heur.source = "heuristic";
-    setData(heur); setLoading(false); setTab("facts");
     if (useAI) {
       setAiBusy(true);
-      try { const r = await aiRunPipeline(input, flt); setData(r); } catch (e) { /* keep heuristic */ }
+      try { const r = await aiRunPipeline(input, flt); setData(r); setLoading(false); setTab("facts"); }
+      catch (e) {
+        const heur = runPipeline(input, flt);
+        heur.source = "heuristic"; heur.aiStatus = "error"; heur.aiError = String(e.message || e);
+        setData(heur); setLoading(false); setTab("facts");
+      }
       setAiBusy(false);
+    } else {
+      const heur = runPipeline(input, flt);
+      heur.source = "heuristic"; heur.aiStatus = "off";
+      setData(heur); setLoading(false); setTab("facts");
     }
   };
   const run = (text) => { doRun(text != null ? text : q, filter); };
@@ -1337,9 +1366,32 @@ function Analysis({ seed }) {
             </div>
           ) : (
             <div className="view-enter">
-              {(aiBusy || data.source === "ai") && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "8px 12px", borderRadius: 9, background: aiBusy ? "rgba(216,192,138,0.07)" : "rgba(31,179,126,0.07)", border: `1px solid ${aiBusy ? "rgba(216,192,138,0.25)" : "rgba(31,179,126,0.28)"}`, fontSize: 12, color: "var(--silver)" }}>
-                  {aiBusy ? <><Activity size={13} className="gold-text" /> Agen AI memperdalam Fakta, Isu &amp; Pasal… (hasil heuristik ditampilkan dulu)</> : <><Sparkles size={13} className="emerald-text" /> Agen AI aktif · Uji Unsur deterministik · invarian {data.audit.passed}/{data.audit.total}</>}
+              {(aiBusy || aiWanted || data.aiStatus) && (
+                <div style={{
+                  marginBottom: 12, padding: "10px 12px", borderRadius: 9, fontSize: 12, color: "var(--silver)", lineHeight: 1.5,
+                  background: aiBusy ? "rgba(216,192,138,0.07)" : data.aiStatus === "ai" ? "rgba(31,179,126,0.08)" : data.aiStatus === "error" ? "rgba(220,68,55,0.08)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${aiBusy ? "rgba(216,192,138,0.25)" : data.aiStatus === "ai" ? "rgba(31,179,126,0.28)" : data.aiStatus === "error" ? "rgba(220,68,55,0.28)" : "var(--line)"}`,
+                }}>
+                  {aiBusy ? (
+                    <><Activity size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />Memanggil agen AI…</>
+                  ) : data.aiStatus === "ai" ? (
+                    <>
+                      <Sparkles size={13} className="emerald-text" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                      <b className="emerald-text">Agen AI aktif</b>
+                      {getLastAiMeta() ? ` (${getProviderLabel(getLastAiMeta().provider)} · ${getLastAiMeta().model})` : ""}
+                      {data.heurCompare ? ` · Fakta ${data.heurCompare.facts}→${data.fm.facts.length}, Isu ${data.heurCompare.issues}→${data.is.issues.length}` : ""}
+                      {data.rsAiReranked ? " · Pasal di-rerank AI" : ""}
+                      {" · "}Invarian {data.audit.passed}/{data.audit.total}
+                    </>
+                  ) : data.aiStatus === "error" ? (
+                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />AI gagal — pakai heuristik. {data.aiError || getLastAiError() || "Cek API key / provider."}</>
+                  ) : data.aiStatus === "fallback" ? (
+                    <><Info size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />{data.aiNote || "AI tidak meningkatkan hasil — pakai heuristik."}</>
+                  ) : data.aiStatus === "off" ? (
+                    <><ShieldCheck size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />Heuristik saja (AI dimatikan) · Invarian {data.audit.passed}/{data.audit.total}</>
+                  ) : (
+                    <><ShieldCheck size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />Heuristik · Invarian {data.audit.passed}/{data.audit.total}</>
+                  )}
                 </div>
               )}
               {/* summary strip */}
@@ -2641,12 +2693,14 @@ async function crAIReviewBatch(clauses, ctx, contractContext) {
 }
 async function crReview(clauses, ctx, useAI, onProgress, fullText) {
   const out = clauses.map((c) => ({ ...c, review: crHeuristicOne(c) }));
-  if (!useAI) { if (onProgress) onProgress(100); return out; }
+  if (!useAI) { if (onProgress) onProgress(100); return { clauses: out, aiHits: 0, aiError: null }; }
   let contractContext = null;
+  let aiHits = 0;
+  let lastError = null;
   if (fullText && fullText.trim()) {
     try { contractContext = await ContractReviewAgent.extractContractContext(fullText, ctx); } catch (e) { /* optional */ }
   }
-  const B = 3; // smaller batch keeps each richer response within the output budget
+  const B = 3;
   let done = 0;
   for (let i = 0; i < clauses.length; i += B) {
     const batch = clauses.slice(i, i + B);
@@ -2656,6 +2710,7 @@ async function crReview(clauses, ctx, useAI, onProgress, fullText) {
         const r = map[c.idx];
         const h = out[c.idx].review;
         if (r && r.risk) {
+          aiHits++;
           out[c.idx].review = {
             type: c.type, typeLabel: c.typeLabel, summary: r.summary || h.summary,
             risk: (["high", "med", "low"].includes(r.risk) ? r.risk : h.risk),
@@ -2670,11 +2725,11 @@ async function crReview(clauses, ctx, useAI, onProgress, fullText) {
           };
         }
       }
-    } catch (e) { /* keep heuristic for this batch */ }
+    } catch (e) { lastError = String(e.message || e); }
     done += batch.length;
     if (onProgress) onProgress(Math.round((done / clauses.length) * 100));
   }
-  return out;
+  return { clauses: out, aiHits, aiError: aiHits ? null : (lastError || getLastAiError() || "AI tidak merespons — cek API key / provider.") };
 }
 
 /* ---------- risk engine ---------- */
@@ -2935,14 +2990,18 @@ function ContractReview() {
     try {
       const clauses = crSplitClauses(text);
       if (!clauses.length) { setErr("Tidak ada klausul terdeteksi."); setStage("idle"); return; }
-      const reviewed = await crReview(clauses, ctx, useAI, (p) => setProg(p), text);
+      const crResult = await crReview(clauses, ctx, useAI, (p) => setProg(p), text);
+      const reviewed = crResult.clauses;
       const risk = crRiskEngine(reviewed);
       let dataPoints = crExtractDataPoints(text);
       if (useAI) { try { dataPoints = crMergeDataPoints(dataPoints, await crAIDataPoints(text, ctx)); } catch (e) { /* keep heuristic */ } }
+      const aiHits = crResult.aiHits || 0;
       const record = {
         id: "ctr_" + Date.now().toString(36), name: file ? file.name : "Teks tempel", ts: Date.now(),
-        ctx, usedAI: useAI && reviewed.some((c) => c.review.source === "ai"), clauses: reviewed, risk, dataPoints,
+        ctx, usedAI: aiHits > 0, aiHits, aiError: crResult.aiError,
+        clauses: reviewed, risk, dataPoints,
       };
+      if (useAI && !aiHits && crResult.aiError) setErr("AI gagal: " + crResult.aiError + " (hasil heuristik tetap ditampilkan)");
       await crSaveRecord(record);
       await crAudit("analyze_contract", record.name + " · skor " + risk.score);
       setRec(record); setHistory(await crListIndex()); setStage("done"); setTab("summary");
@@ -3057,9 +3116,15 @@ function ContractReview() {
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
                       <h3 className="serif" style={{ fontSize: 21, margin: 0 }}>{rec.name}</h3>
-                      {rec.usedAI && <span className="badge badge-low"><Sparkles size={12} /> AI Counsel</span>}
+                      {rec.usedAI && <span className="badge badge-low"><Sparkles size={12} /> Agen AI · {rec.aiHits}/{rec.clauses.length} klausul</span>}
+                      {!rec.usedAI && rec.aiError && <span className="badge badge-high" style={{ fontSize: 10 }}>Heuristik (AI gagal)</span>}
                     </div>
                     <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>{rec.clauses.length} klausul · perspektif: {rec.ctx} · {new Date(rec.ts).toLocaleString("id-ID")}</p>
+                    {rec.usedAI && getLastAiMeta() && (
+                      <p style={{ fontSize: 11, color: "var(--emerald-bright)", margin: "6px 0 0" }}>
+                        Provider: {getProviderLabel(getLastAiMeta().provider)} · {getLastAiMeta().model}
+                      </p>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button className="btn-ghost" onClick={() => crExportReport(rec, "word")}><Download size={15} /> DOCX</button>

@@ -41,3 +41,11 @@ export function setLastAiMeta(meta) {
 export function getLastAiMeta() {
   return (typeof window !== "undefined" && window.__KNSL_AI_LAST__) || null;
 }
+
+export function setLastAiError(msg) {
+  if (typeof window !== "undefined") window.__KNSL_AI_LAST_ERR__ = msg || null;
+}
+
+export function getLastAiError() {
+  return (typeof window !== "undefined" && window.__KNSL_AI_LAST_ERR__) || null;
+}
