@@ -9,6 +9,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
+import { I18nProvider } from "./i18n/I18nContext.jsx";
 import AppRoutes from "./routes/AppRoutes.jsx";
 
 if (typeof window !== "undefined") {
@@ -178,9 +179,11 @@ function mount() {
   try {
     createRoot(rootEl).render(
       <ErrorBoundary>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </I18nProvider>
       </ErrorBoundary>
     );
   } catch (err) {

@@ -3,14 +3,17 @@ import { Shield, Lock, Cloud } from "lucide-react";
 import { LogoMark } from "../../../theme.jsx";
 import { AUTH_STYLES } from "../styles/authStyles.js";
 import AuthMobileMarquee from "./AuthMobileMarquee.jsx";
-
-const TRUST = [
-  { icon: Shield, text: "Enkripsi sesi & data terisolasi per akun" },
-  { icon: Lock, text: "Autentikasi enterprise via Supabase" },
-  { icon: Cloud, text: "Sinkronisasi analisa & kontrak di cloud" },
-];
+import LanguageSwitcher from "../../../components/LanguageSwitcher.jsx";
+import { useI18n } from "../../../i18n/I18nContext.jsx";
 
 export default function AuthLayout({ children, title, subtitle, showMobileMarquee = false }) {
+  const { t } = useI18n();
+  const TRUST = [
+    { icon: Shield, text: t("auth.trustEncrypt") },
+    { icon: Lock, text: t("auth.trustAuth") },
+    { icon: Cloud, text: t("auth.trustSync") },
+  ];
+
   return (
     <div className="auth-root">
       <style>{AUTH_STYLES}</style>
@@ -25,11 +28,8 @@ export default function AuthLayout({ children, title, subtitle, showMobileMarque
           <div className="auth-brand-inner">
             <LogoMark size={52} />
             <h1>KNSL</h1>
-            <div className="auth-brand-tag">Legal Intelligence</div>
-            <p className="auth-brand-lead">
-              Platform AI untuk praktisi hukum Indonesia — analisa kasus, drafting, riset pasal,
-              dan review kontrak dalam satu workspace aman.
-            </p>
+            <div className="auth-brand-tag">{t("common.legalTagline")}</div>
+            <p className="auth-brand-lead">{t("auth.brandLead")}</p>
           </div>
           <div className="auth-trust">
             {TRUST.map(({ icon: Icon, text }) => (
@@ -44,10 +44,13 @@ export default function AuthLayout({ children, title, subtitle, showMobileMarque
 
         <main className="auth-form-panel">
           <div className="auth-form-wrap">
+            <div className="auth-lang-switch">
+              <LanguageSwitcher compact />
+            </div>
             <div className="auth-mobile-brand">
               <LogoMark size={48} />
               <h1>KNSL</h1>
-              <div className="auth-brand-tag">Legal Intelligence</div>
+              <div className="auth-brand-tag">{t("common.legalTagline")}</div>
             </div>
             {(title || subtitle) && (
               <header className="auth-form-header">
@@ -57,7 +60,7 @@ export default function AuthLayout({ children, title, subtitle, showMobileMarque
             )}
             {children}
             <p className="auth-footer-note">
-              © {new Date().getFullYear()} KNSL · Confidential legal workspace
+              {t("auth.footer", { year: new Date().getFullYear() })}
             </p>
           </div>
         </main>

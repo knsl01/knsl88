@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Mail, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
+import { useI18n } from "../../../i18n/I18nContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
 import AuthButton from "../components/AuthButton.jsx";
@@ -17,6 +18,7 @@ import { formatAuthError } from "../utils/errors.js";
 import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
 export default function SignupPage() {
+  const { t } = useI18n();
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
@@ -34,7 +36,7 @@ export default function SignupPage() {
     setError("");
     setSuccess("");
     const errs = {};
-    const nErr = validateRequired(fullName, "Nama lengkap");
+    const nErr = validateRequired(fullName, t("auth.fullName"));
     const eErr = validateEmail(email);
     const pErr = validatePassword(password, { minLength: 8 });
     const mErr = validatePasswordMatch(password, password2);
@@ -50,7 +52,7 @@ export default function SignupPage() {
       const username = email.split("@")[0];
       const r = await signUp({ email, password, fullName, username });
       if (r.needsEmailConfirmation) {
-        setSuccess("Akun dibuat. Cek email Anda untuk konfirmasi, lalu masuk.");
+        setSuccess(t("auth.signupSuccessConfirm"));
         setTimeout(() => navigate(ROUTES.LOGIN, { replace: true }), 2500);
       } else {
         navigate(DEFAULT_AUTHENTICATED_ROUTE, { replace: true });
@@ -64,77 +66,77 @@ export default function SignupPage() {
 
   return (
     <AuthLayout
-      title="Buat akun profesional"
-      subtitle="Data analisa dan kontrak Anda tersimpan aman di cloud."
+      title={t("auth.signupTitle")}
+      subtitle={t("auth.signupSub")}
     >
       <AuthAlert variant="error">{error}</AuthAlert>
       <AuthAlert variant="success">{success}</AuthAlert>
 
       <form onSubmit={submit} noValidate>
         <AuthField
-          label="Nama lengkap"
+          label={t("auth.fullName")}
           name="fullName"
           value={fullName}
           onChange={(e) => { setFullName(e.target.value); setFieldErrors((f) => ({ ...f, fullName: null })); }}
           error={fieldErrors.fullName}
-          placeholder="Adv. Nama Anda"
+          placeholder={t("auth.namePlaceholder")}
           autoComplete="name"
           icon={User}
           disabled={loading}
         />
         <AuthField
-          label="Email profesional"
+          label={t("auth.email")}
           name="email"
           type="email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: null })); }}
           error={fieldErrors.email}
-          placeholder="nama@firma.com"
+          placeholder={t("auth.emailPlaceholder")}
           autoComplete="email"
           icon={Mail}
           disabled={loading}
         />
         <AuthField
-          label="Nama firma (opsional)"
+          label={t("auth.firmOptional")}
           name="firmName"
           value={firmName}
           onChange={(e) => setFirmName(e.target.value)}
-          placeholder="Kantor Hukum …"
+          placeholder={t("auth.firmPlaceholder")}
           disabled={loading}
         />
         <AuthField
-          label="Password"
+          label={t("auth.password")}
           name="password"
           type="password"
           value={password}
           onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: null })); }}
           error={fieldErrors.password}
-          placeholder="Min. 8 karakter"
+          placeholder={t("auth.passwordMin")}
           autoComplete="new-password"
           disabled={loading}
         />
         <PasswordStrength password={password} />
         <AuthField
-          label="Konfirmasi password"
+          label={t("auth.passwordConfirm")}
           name="password2"
           type="password"
           value={password2}
           onChange={(e) => { setPassword2(e.target.value); setFieldErrors((f) => ({ ...f, password2: null })); }}
           error={fieldErrors.password2}
-          placeholder="Ulangi password"
+          placeholder={t("auth.passwordRepeat")}
           autoComplete="new-password"
           disabled={loading}
         />
 
-        <AuthButton loading={loading}>Daftar</AuthButton>
+        <AuthButton loading={loading}>{t("auth.signupBtn")}</AuthButton>
       </form>
 
       <div className="auth-divider" />
 
       <p style={{ textAlign: "center", fontSize: 14, color: "var(--auth-muted)", margin: 0 }}>
-        Sudah punya akun?{" "}
+        {t("auth.hasAccount")}{" "}
         <button type="button" className="auth-link" onClick={() => navigate(ROUTES.LOGIN)}>
-          Masuk
+          {t("auth.loginLink")}
         </button>
       </p>
     </AuthLayout>

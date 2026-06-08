@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Mail, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
+import { useI18n } from "../../../i18n/I18nContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
 import AuthButton from "../components/AuthButton.jsx";
@@ -11,6 +12,7 @@ import { formatAuthError } from "../utils/errors.js";
 import { ROUTES } from "../../../routes/paths.js";
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -30,7 +32,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       await resetPassword(email);
-      setSuccess("Link reset password telah dikirim. Periksa inbox dan folder spam.");
+      setSuccess(t("auth.resetSent"));
     } catch (err) {
       setError(formatAuthError(err));
     } finally {
@@ -40,26 +42,26 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthLayout
-      title="Reset password"
-      subtitle="Kami akan mengirim link aman ke email terdaftar Anda."
+      title={t("auth.forgotTitle")}
+      subtitle={t("auth.forgotSub")}
     >
       <AuthAlert variant="error">{error}</AuthAlert>
       <AuthAlert variant="success">{success}</AuthAlert>
 
       <form onSubmit={submit} noValidate>
         <AuthField
-          label="Email akun"
+          label={t("auth.emailAccount")}
           name="email"
           type="email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setFieldErrors({}); }}
           error={fieldErrors.email}
-          placeholder="nama@firma.com"
+          placeholder={t("auth.emailPlaceholder")}
           autoComplete="email"
           icon={Mail}
           disabled={loading}
         />
-        <AuthButton loading={loading}>Kirim link reset</AuthButton>
+        <AuthButton loading={loading}>{t("auth.resetBtn")}</AuthButton>
       </form>
 
       <button
@@ -68,7 +70,7 @@ export default function ForgotPasswordPage() {
         onClick={() => navigate(ROUTES.LOGIN)}
         style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
       >
-        <ArrowLeft size={16} /> Kembali ke masuk
+        <ArrowLeft size={16} /> {t("auth.backLogin")}
       </button>
     </AuthLayout>
   );

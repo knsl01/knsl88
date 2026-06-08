@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
+import { useI18n } from "../../../i18n/I18nContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
 import AuthButton from "../components/AuthButton.jsx";
@@ -11,6 +12,7 @@ import { formatAuthError } from "../utils/errors.js";
 import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
 export default function ResetPasswordPage() {
+  const { t } = useI18n();
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
@@ -35,7 +37,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     try {
       await updatePassword(password);
-      setSuccess("Password berhasil diperbarui.");
+      setSuccess(t("auth.resetDone"));
       window.history.replaceState(null, "", ROUTES.RESET_PASSWORD);
       setTimeout(() => navigate(DEFAULT_AUTHENTICATED_ROUTE, { replace: true }), 1500);
     } catch (err) {
@@ -47,37 +49,37 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthLayout
-      title="Password baru"
-      subtitle="Pilih password yang kuat untuk melindungi workspace Anda."
+      title={t("auth.resetTitle")}
+      subtitle={t("auth.resetSub")}
     >
       <AuthAlert variant="error">{error}</AuthAlert>
       <AuthAlert variant="success">{success}</AuthAlert>
 
       <form onSubmit={submit} noValidate>
         <AuthField
-          label="Password baru"
+          label={t("auth.passwordNew")}
           name="password"
           type="password"
           value={password}
           onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: null })); }}
           error={fieldErrors.password}
-          placeholder="Min. 8 karakter"
+          placeholder={t("auth.passwordMin")}
           autoComplete="new-password"
           disabled={loading}
         />
         <PasswordStrength password={password} />
         <AuthField
-          label="Konfirmasi password"
+          label={t("auth.passwordConfirm")}
           name="password2"
           type="password"
           value={password2}
           onChange={(e) => { setPassword2(e.target.value); setFieldErrors((f) => ({ ...f, password2: null })); }}
           error={fieldErrors.password2}
-          placeholder="Ulangi password"
+          placeholder={t("auth.passwordRepeat")}
           autoComplete="new-password"
           disabled={loading}
         />
-        <AuthButton loading={loading}>Simpan password</AuthButton>
+        <AuthButton loading={loading}>{t("auth.savePasswordBtn")}</AuthButton>
       </form>
     </AuthLayout>
   );

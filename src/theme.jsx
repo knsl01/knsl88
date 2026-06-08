@@ -327,6 +327,23 @@ export const STYLES = `
   .legal-chat-header{padding:12px 16px;margin:0 12px 8px;}
   .legal-chat-ai-panel{display:none!important;}
 }
+
+/* ===== language switcher ===== */
+.lang-switch{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);}
+.lang-switch--compact{padding:4px;gap:4px;border:none;background:rgba(255,255,255,0.04);border-radius:10px;}
+.lang-switch-label{font-size:12px;color:var(--muted);white-space:nowrap;}
+.lang-switch-btn{
+  font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.04em;
+  padding:5px 10px;border-radius:8px;border:1px solid transparent;
+  background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;
+}
+.lang-switch-btn:hover{color:var(--silver);border-color:rgba(216,192,138,0.2);}
+.lang-switch-btn.active{
+  color:var(--champagne);background:rgba(31,179,126,0.12);
+  border-color:rgba(31,179,126,0.35);box-shadow:0 0 12px rgba(31,179,126,0.08);
+}
+.sidebar .lang-switch{margin:12px 6px 4px;width:calc(100% - 12px);box-sizing:border-box;}
+.auth-lang-switch{display:flex;justify-content:flex-end;margin-bottom:12px;}
 `;
 
 export function LogoMark({ size = 46 }) {

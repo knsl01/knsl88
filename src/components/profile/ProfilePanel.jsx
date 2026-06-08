@@ -5,8 +5,11 @@ import { isSupabaseConfigured } from "../../lib/supabase.js";
 import { getStoredUser, storeUser } from "../../lib/localAuth.js";
 import { readImageFileAsDataUrl } from "../../lib/avatarImage.js";
 import UserAvatar from "./UserAvatar.jsx";
+import LanguageSwitcher from "../LanguageSwitcher.jsx";
+import { useI18n } from "../../i18n/I18nContext.jsx";
 
 export default function ProfilePanel({ onClose }) {
+  const { t } = useI18n();
   const { user, profile, updateProfile, updatePassword, signOut, isSupabase } = useAuth();
   const [fullName, setFullName] = useState(user?.name || "");
   const [username, setUsername] = useState(user?.username || "");
@@ -31,8 +34,8 @@ export default function ProfilePanel({ onClose }) {
   useEffect(() => {
     if (!msg && !err) return;
     toastRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    const t = setTimeout(() => { setMsg(""); setErr(""); }, 5000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => { setMsg(""); setErr(""); }, 5000);
+    return () => clearTimeout(timer);
   }, [msg, err]);
 
   const onPickPhoto = async (e) => {
@@ -43,9 +46,9 @@ export default function ProfilePanel({ onClose }) {
     try {
       const dataUrl = await readImageFileAsDataUrl(file);
       setAvatarUrl(dataUrl);
-      setMsg("Foto dipilih — tekan Simpan Profil untuk menyimpan.");
+      setMsg(t("profile.photoPicked"));
     } catch (ex) {
-      setErr(ex.message || "Gagal memproses foto.");
+      setErr(ex.message || t("profile.photoError"));
     }
   };
 
@@ -58,7 +61,7 @@ export default function ProfilePanel({ onClose }) {
         await updateProfile({ fullName, username, firmName, phone, avatarUrl: avatarUrl || null });
       } else {
         const cur = getStoredUser();
-        if (!cur) throw new Error("Belum login.");
+        if (!cur) throw new Error(t("profile.notLoggedIn"));
         storeUser({
           ...cur,
           name: fullName.trim() || cur.name,
@@ -68,9 +71,9 @@ export default function ProfilePanel({ onClose }) {
           avatarUrl: avatarUrl || null,
         });
       }
-      setMsg("Data profil berhasil disimpan.");
+      setMsg(t("profile.saved"));
     } catch (e) {
-      setErr(e.message || "Gagal menyimpan profil.");
+      setErr(e.message || t("profile.saveError"));
     } finally {
       setBusy(false);
     }
@@ -78,16 +81,16 @@ export default function ProfilePanel({ onClose }) {
 
   const removePhoto = () => {
     setAvatarUrl("");
-    setMsg("Foto dihapus — tekan Simpan Profil.");
+    setMsg(t("profile.photoRemoved"));
   };
 
   const changePassword = async () => {
     if (!isSupabaseConfigured) {
-      setErr("Ubah password via akun lokal tidak tersedia di mode ini.");
+      setErr(t("profile.localPasswordNote"));
       return;
     }
     if (newPw.length < 6) {
-      setErr("Password minimal 6 karakter.");
+      setErr(t("profile.passwordMin"));
       setMsg("");
       return;
     }
@@ -97,9 +100,9 @@ export default function ProfilePanel({ onClose }) {
     try {
       await updatePassword(newPw);
       setNewPw("");
-      setMsg("Password berhasil diperbarui.");
+      setMsg(t("profile.passwordSaved"));
     } catch (e) {
-      setErr(e.message || "Gagal mengubah password.");
+      setErr(e.message || t("profile.passwordChangeError"));
     } finally {
       setBusy(false);
     }
@@ -112,8 +115,14 @@ export default function ProfilePanel({ onClose }) {
       <div className="glass rise" style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
           <User size={20} className="gold-text" />
-          <h2 className="serif" style={{ margin: 0, fontSize: 22 }}>Profil Akun</h2>
-          {onClose && <span className="chip" style={{ marginLeft: "auto" }} onClick={onClose}>Tutup</span>}
+          <h2 className="serif" style={{ margin: 0, fontSize: 22 }}>{t("profile.title")}</h2>
+          {onClose && (
+            <span className="chip" style={{ marginLeft: "auto" }} onClick={onClose}>{t("common.close")}</span>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <LanguageSwitcher />
         </div>
 
         <div ref={toastRef}>
@@ -135,51 +144,53 @@ export default function ProfilePanel({ onClose }) {
           <UserAvatar user={previewUser} size={88} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <button type="button" className="btn-ghost" style={{ fontSize: 13 }} onClick={() => fileRef.current?.click()} disabled={busy}>
-              <Camera size={15} /> {avatarUrl ? "Ganti foto" : "Unggah foto"}
+              <Camera size={15} /> {avatarUrl ? t("profile.changePhoto") : t("profile.uploadPhoto")}
             </button>
             {avatarUrl && (
               <button type="button" className="btn-ghost" style={{ fontSize: 13, color: "var(--muted)" }} onClick={removePhoto} disabled={busy}>
-                Hapus foto
+                {t("profile.removePhoto")}
               </button>
             )}
           </div>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={onPickPhoto} />
-          <p style={{ fontSize: 11, color: "var(--muted-2)", margin: 0 }}>JPG/PNG, otomatis dikecilkan untuk simpan aman.</p>
+          <p style={{ fontSize: 11, color: "var(--muted-2)", margin: 0 }}>{t("profile.photoHint")}</p>
         </div>
 
         <div style={{ display: "grid", gap: 12 }}>
-          <label style={{ fontSize: 12, color: "var(--muted)" }}><Mail size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />Email</label>
+          <label style={{ fontSize: 12, color: "var(--muted)" }}><Mail size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />{t("profile.email")}</label>
           <input className="field" value={user?.email || ""} disabled />
 
-          <label style={{ fontSize: 12, color: "var(--muted)" }}>Nama lengkap</label>
+          <label style={{ fontSize: 12, color: "var(--muted)" }}>{t("profile.fullName")}</label>
           <input className="field" value={fullName} onChange={(e) => setFullName(e.target.value)} />
 
-          <label style={{ fontSize: 12, color: "var(--muted)" }}>Username</label>
+          <label style={{ fontSize: 12, color: "var(--muted)" }}>{t("profile.username")}</label>
           <input className="field" value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" />
 
-          <label style={{ fontSize: 12, color: "var(--muted)" }}><Building2 size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />Firma / Kantor</label>
-          <input className="field" value={firmName} onChange={(e) => setFirmName(e.target.value)} placeholder="Opsional" />
+          <label style={{ fontSize: 12, color: "var(--muted)" }}><Building2 size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />{t("profile.firm")}</label>
+          <input className="field" value={firmName} onChange={(e) => setFirmName(e.target.value)} placeholder={t("common.optional")} />
 
-          <label style={{ fontSize: 12, color: "var(--muted)" }}><Phone size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />Telepon</label>
-          <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Opsional" />
+          <label style={{ fontSize: 12, color: "var(--muted)" }}><Phone size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />{t("profile.phone")}</label>
+          <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("common.optional")} />
 
-          <div style={{ fontSize: 11, color: "var(--muted-2)" }}>Role: {profile?.role || user?.role || "reviewer"} · ID: {user?.id?.slice(0, 8)}…</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)" }}>
+            {t("profile.roleLabel")}: {profile?.role || user?.role || "reviewer"} · ID: {user?.id?.slice(0, 8)}…
+          </div>
 
           <button className="btn-primary" onClick={saveProfile} disabled={busy} style={{ marginTop: 8 }}>
-            <Save size={16} /> Simpan Profil
+            <Save size={16} /> {t("profile.saveProfile")}
           </button>
 
           {isSupabase && (
             <>
               <div className="hairline" style={{ margin: "8px 0" }} />
-              <label style={{ fontSize: 12, color: "var(--muted)" }}><Lock size={12} /> Password baru</label>
-              <input className="field" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min. 6 karakter" />
-              <button className="btn-ghost" onClick={changePassword} disabled={busy || !newPw}>Ubah Password</button>
+              <label style={{ fontSize: 12, color: "var(--muted)" }}><Lock size={12} /> {t("profile.newPassword")}</label>
+              <input className="field" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder={t("auth.passwordMin")} />
+              <button className="btn-ghost" onClick={changePassword} disabled={busy || !newPw}>{t("profile.changePassword")}</button>
             </>
           )}
 
           <button className="btn-ghost" style={{ marginTop: 12, color: "#ff9a8b", borderColor: "rgba(220,68,55,0.3)" }} onClick={() => signOut()}>
-            <LogOut size={16} /> Keluar
+            <LogOut size={16} /> {t("profile.logout")}
           </button>
         </div>
       </div>

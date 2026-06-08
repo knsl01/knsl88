@@ -11,6 +11,7 @@ import {
   newDeadline, newDocketRow, TREND_DEFAULT,
 } from "../../services/dashboardStore.js";
 import DashboardWelcome from "./DashboardWelcome.jsx";
+import { useI18n } from "../../i18n/I18nContext.jsx";
 
 const ICONS = [Briefcase, TrendingUp, Clock, Users];
 
@@ -58,6 +59,7 @@ function Metric({ icon: Icon, label, value, suffix, delta, i, editing, onChange 
 }
 
 export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysis }) {
+  const { t } = useI18n();
   const [metrics, setMetrics] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
   const [docket, setDocket] = useState([]);
@@ -89,7 +91,7 @@ export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysi
 
   const persist = async (payload) => {
     await saveDashboard(payload);
-    setToast("Data dasbor disimpan.");
+    setToast(t("dashboard.saved"));
     setTimeout(() => setToast(""), 4000);
   };
 
@@ -123,7 +125,7 @@ export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysi
   if (!ready) {
     return (
       <div className="view-enter page scrollbar" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-        Memuat dasbor…
+        {t("dashboard.loading")}
       </div>
     );
   }
@@ -147,11 +149,11 @@ export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysi
       {editing && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.4 }}>
-            Mode edit — isi data perkara & tenggat Anda. Tekan ✓ di header untuk simpan.
+            {t("dashboard.editHint")}
           </span>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" className="btn-ghost" onClick={refreshMetrics} style={{ fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <RefreshCw size={14} /> Hitung ulang metrik
+              <RefreshCw size={14} /> {t("dashboard.recalc")}
             </button>
           </div>
         </div>
@@ -215,7 +217,7 @@ export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysi
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
             {deadlines.length === 0 && (
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Belum ada tenggat. Aktifkan mode edit (✓) lalu tambah.</p>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{t("dashboard.noDeadlines")}</p>
             )}
             {deadlines.map((d, i) => (
               <div key={d.id || i} className="clause-flag" style={{ borderColor: d.risk === "high" ? "#dc4437" : d.risk === "med" ? "#d8c08a" : "#1fb37e", position: "relative" }}>
@@ -258,7 +260,7 @@ export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysi
           )}
         </div>
         {docket.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--muted)" }}>Belum ada perkara. Mode edit → Tambah perkara.</p>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>{t("dashboard.noDocket")}</p>
         ) : (
           <div className="tablewrap scrollbar">
             <div className="docket-row" style={{ fontSize: 11, letterSpacing: "1px", color: "var(--muted-2)", textTransform: "uppercase", paddingBottom: 12 }}>

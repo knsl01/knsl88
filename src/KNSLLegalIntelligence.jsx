@@ -26,6 +26,8 @@ import LegalChat from "./features/chat/LegalChat.jsx";
 import { useLocalUser } from "./hooks/useLocalUser.js";
 import { storeUser, clearStoredUser } from "./lib/localAuth.js";
 import { ACTIVE_TO_ROUTE, ROUTES, routeToActive } from "./routes/paths.js";
+import { useI18n, formatLocaleDate } from "./i18n/I18nContext.jsx";
+import LanguageSwitcher from "./components/LanguageSwitcher.jsx";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -770,16 +772,17 @@ export function LoginScreen({ onLogin }) {
 
 /* ---------- sidebar ---------- */
 function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
+  const { t } = useI18n();
   const items = [
-    { id: "dashboard", label: "Executive Overview", icon: LayoutDashboard },
-    { id: "chat", label: "Chat Hukum AI", icon: MessageCircle },
-    { id: "analysis", label: "Legal Analysis Engine", icon: Scale },
-    { id: "drafting", label: "Smart Drafting", icon: FileSignature },
-    { id: "research", label: "Legal Research", icon: BookOpen },
-    { id: "scan", label: "Pindai Dokumen", icon: ScanLine },
-    { id: "contract", label: "Contract Review AI", icon: FileSearch },
-    { id: "conflict", label: "Conflict Check", icon: ShieldCheck },
-    { id: "profile", label: "Profil Akun", icon: User },
+    { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { id: "chat", label: t("nav.chat"), icon: MessageCircle },
+    { id: "analysis", label: t("nav.analysis"), icon: Scale },
+    { id: "drafting", label: t("nav.drafting"), icon: FileSignature },
+    { id: "research", label: t("nav.research"), icon: BookOpen },
+    { id: "scan", label: t("nav.scan"), icon: ScanLine },
+    { id: "contract", label: t("nav.contract"), icon: FileSearch },
+    { id: "conflict", label: t("nav.conflict"), icon: ShieldCheck },
+    { id: "profile", label: t("nav.profile"), icon: User },
   ];
   const pick = (id) => { onNavigate(id); onClose(); };
   return (
@@ -789,13 +792,13 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
           <LogoMark size={46} />
           <div>
             <div className="serif" style={{ fontSize: 21, fontWeight: 700, lineHeight: 1, letterSpacing: ".5px" }}>KNSL</div>
-            <div style={{ fontSize: 10, letterSpacing: "2.5px", color: "var(--champagne)", marginTop: 3, textTransform: "uppercase" }}>Legal Intelligence</div>
+            <div style={{ fontSize: 10, letterSpacing: "2.5px", color: "var(--champagne)", marginTop: 3, textTransform: "uppercase" }}>{t("common.legalTagline")}</div>
           </div>
         </div>
         <div className="hairline" style={{ margin: "22px 0 14px" }} />
       </div>
       <div className="sidebar-scroll scrollbar">
-        <div style={{ fontSize: 10.5, letterSpacing: "2px", color: "var(--muted-2)", textTransform: "uppercase", padding: "0 8px 10px" }}>Modul Utama</div>
+        <div style={{ fontSize: 10.5, letterSpacing: "2px", color: "var(--muted-2)", textTransform: "uppercase", padding: "0 8px 10px" }}>{t("nav.modules")}</div>
         <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {items.map((it) => {
             const Icon = it.icon;
@@ -808,12 +811,13 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
             );
           })}
         </nav>
+        <LanguageSwitcher compact />
         <div className="sidebar-foot">
           <div className="glass" style={{ padding: 16, marginTop: 18, background: "linear-gradient(150deg,rgba(19,133,92,0.14),rgba(8,10,9,0.2))" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <Sparkles size={15} className="gold-text" /><span className="gold-text" style={{ fontSize: 12.5, fontWeight: 600 }}>AI Counsel · Aktif</span>
+              <Sparkles size={15} className="gold-text" /><span className="gold-text" style={{ fontSize: 12.5, fontWeight: 600 }}>{t("nav.aiActive")}</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>{PASAL.length} pasal terindeks dari KUHP, UU PT & UUD 1945.</p>
+            <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>{t("nav.pasalIndexed", { count: PASAL.length })}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "14px 6px 4px" }}>
             <UserAvatar user={user} size={36} />
@@ -821,7 +825,7 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
               <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user ? user.name : "—"}</div>
               <div style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@{user ? user.username : ""}</div>
             </div>
-            <button type="button" aria-label="Keluar" onClick={onLogout} style={{ background: "none", border: "none", padding: 8, cursor: "pointer", color: "var(--muted)", flexShrink: 0, display: "grid", placeItems: "center" }}>
+            <button type="button" aria-label={t("nav.logout")} onClick={onLogout} style={{ background: "none", border: "none", padding: 8, cursor: "pointer", color: "var(--muted)", flexShrink: 0, display: "grid", placeItems: "center" }}>
               <LogOut size={16} />
             </button>
           </div>
@@ -833,6 +837,7 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
 
 /* ---------- topbar ---------- */
 function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
+  const { t } = useI18n();
   const [v, setV] = useState("");
   return (
     <header className="topbar">
@@ -846,7 +851,7 @@ function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div className="glass topbar-search">
           <Search size={16} style={{ color: "var(--muted)" }} />
-          <input className="field" style={{ border: "none", background: "transparent", padding: 0, fontSize: 13.5 }} placeholder="Cari pasal (mis. pencurian)..."
+          <input className="field" style={{ border: "none", background: "transparent", padding: 0, fontSize: 13.5 }} placeholder={t("nav.searchPlaceholder")}
             value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && v.trim()) onGlobalSearch(v.trim()); }} />
         </div>
         {action}
@@ -3165,13 +3170,14 @@ function ScanDoc({ onSend }) {
 }
 
 function MobileTabBar({ active, onNavigate }) {
+  const { t } = useI18n();
   const items = [
-    { id: "dashboard", label: "Overview", icon: LayoutDashboard },
-    { id: "chat", label: "Chat", icon: MessageCircle },
-    { id: "analysis", label: "Analisa", icon: Scale },
-    { id: "drafting", label: "Drafting", icon: FileSignature },
-    { id: "contract", label: "Kontrak", icon: FileSearch },
-    { id: "scan", label: "Pindai", icon: ScanLine },
+    { id: "dashboard", label: t("nav.mtabOverview"), icon: LayoutDashboard },
+    { id: "chat", label: t("nav.mtabChat"), icon: MessageCircle },
+    { id: "analysis", label: t("nav.mtabAnalysis"), icon: Scale },
+    { id: "drafting", label: t("nav.mtabDrafting"), icon: FileSignature },
+    { id: "contract", label: t("nav.mtabContract"), icon: FileSearch },
+    { id: "scan", label: t("nav.mtabScan"), icon: ScanLine },
   ];
   return (
     <nav className="mobile-tabbar">
@@ -3189,20 +3195,8 @@ function MobileTabBar({ active, onNavigate }) {
   );
 }
 
-function getHariTanggal(d = new Date()) {
-  try {
-    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-    const bulan = [
-      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-      "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-    ];
-    return hari[d.getDay()] + ", " + d.getDate() + " " + bulan[d.getMonth()] + " " + d.getFullYear();
-  } catch {
-    return "";
-  }
-}
-
 export default function App() {
+  const { locale, t } = useI18n();
   const { isSupabase, user: supaUser, signOut } = useAuth();
   const localUser = useLocalUser();
   const user = isSupabase ? supaUser : localUser;
@@ -3224,17 +3218,17 @@ export default function App() {
     navigate(path);
   }, [navigate]);
 
-  const meta = {
-    dashboard: ["Executive Overview", "Dasbor · " + getHariTanggal()],
-    chat: ["Chat Hukum AI", "Konsultasi riset hukum Indonesia"],
-    analysis: ["Legal Analysis Engine", "Analisa Kasus & Ekstraksi Pasal"],
-    drafting: ["Smart Drafting Studio", "Drafting & Contract Redlining"],
-    research: ["Legal Research", "Riset Pasal & Basis UU"],
-    contract: ["Contract Review AI", "Tinjauan Kontrak — Klausul, Risiko & Laporan"],
-    scan: ["Pindai Dokumen", "Digitalkan dokumen → PDF / Word → kirim ke fitur lain"],
-    conflict: ["Conflict Check", "Pemeriksaan Benturan Kepentingan"],
-    profile: ["Profil Akun", "Data pengguna & keamanan"],
-  };
+  const meta = useMemo(() => ({
+    dashboard: [t("nav.dashboard"), t("nav.dashboardSub", { date: formatLocaleDate(locale) })],
+    chat: [t("nav.chat"), t("nav.chatSub")],
+    analysis: [t("nav.analysis"), t("nav.analysisSub")],
+    drafting: [t("nav.drafting"), t("nav.draftingSub")],
+    research: [t("nav.research"), t("nav.researchSub")],
+    contract: [t("nav.contract"), t("nav.contractSub")],
+    scan: [t("nav.scan"), t("nav.scanSub")],
+    conflict: [t("nav.conflict"), t("nav.conflictSub")],
+    profile: [t("nav.profile"), t("nav.profileSub")],
+  }), [t, locale]);
   const logout = async () => {
     if (isSupabase) await signOut();
     else clearStoredUser();
@@ -3260,7 +3254,7 @@ export default function App() {
               <div
                 className="glass glass-hover"
                 onClick={() => setDashEditing((e) => !e)}
-                title={dashEditing ? "Simpan data" : "Edit data"}
+                title={dashEditing ? t("dashboard.saveData") : t("dashboard.editData")}
                 style={{ width: 44, height: 44, display: "grid", placeItems: "center", cursor: "pointer", borderRadius: 14, color: dashEditing ? "var(--emerald-bright)" : "var(--silver)" }}
               >
                 {dashEditing ? <CheckCircle2 size={18} /> : <Settings size={18} />}

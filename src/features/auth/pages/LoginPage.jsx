@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Mail } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
+import { useI18n } from "../../../i18n/I18nContext.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
 import AuthButton from "../components/AuthButton.jsx";
@@ -11,6 +12,7 @@ import { formatAuthError } from "../utils/errors.js";
 import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,33 +47,33 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Masuk ke workspace"
-      subtitle="Akses analisa hukum, drafting, dan review kontrak Anda."
+      title={t("auth.loginTitle")}
+      subtitle={t("auth.loginSub")}
       showMobileMarquee
     >
       <AuthAlert variant="error">{error}</AuthAlert>
 
       <form onSubmit={submit} noValidate>
         <AuthField
-          label="Email profesional"
+          label={t("auth.email")}
           name="email"
           type="email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: null })); }}
           error={fieldErrors.email}
-          placeholder="nama@firma.com"
+          placeholder={t("auth.emailPlaceholder")}
           autoComplete="email"
           icon={Mail}
           disabled={loading}
         />
         <AuthField
-          label="Password"
+          label={t("auth.password")}
           name="password"
           type="password"
           value={password}
           onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: null })); }}
           error={fieldErrors.password}
-          placeholder="••••••••"
+          placeholder={t("auth.passwordPlaceholder")}
           autoComplete="current-password"
           disabled={loading}
         />
@@ -79,19 +81,19 @@ export default function LoginPage() {
         <div className="auth-row-between">
           <span />
           <button type="button" className="auth-link" onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}>
-            Lupa password?
+            {t("auth.forgotLink")}
           </button>
         </div>
 
-        <AuthButton loading={loading}>Masuk</AuthButton>
+        <AuthButton loading={loading}>{t("auth.loginBtn")}</AuthButton>
       </form>
 
       <div className="auth-divider" />
 
       <p style={{ textAlign: "center", fontSize: 14, color: "var(--auth-muted)", margin: 0 }}>
-        Belum punya akun?{" "}
+        {t("auth.noAccount")}{" "}
         <button type="button" className="auth-link" onClick={() => navigate(ROUTES.SIGNUP)}>
-          Daftar sekarang
+          {t("auth.signupLink")}
         </button>
       </p>
     </AuthLayout>

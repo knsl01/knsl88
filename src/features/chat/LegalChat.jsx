@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Bot, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { askLegalChat, SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
-import { loadChatMessages, saveChatMessages, clearChatMessages } from "../../services/legalChatStore.js";
+import {
+  loadChatMessages,
+  saveChatMessages,
+  clearChatMessages,
+  buildWelcomeContent,
+} from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useLocalUser } from "../../hooks/useLocalUser.js";
 import { isSupabaseConfigured } from "../../lib/supabase.js";
 import UserAvatar from "../../components/profile/UserAvatar.jsx";
+import { useI18n } from "../../i18n/I18nContext.jsx";
 
 function msgId() {
   return "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
@@ -44,6 +50,7 @@ function ChatBubble({ message, user }) {
 }
 
 export default function LegalChat() {
+  const { locale, t } = useI18n();
   const { user: supaUser } = useAuth();
   const localUser = useLocalUser();
   const user = isSupabaseConfigured ? supaUser : localUser;
@@ -71,6 +78,17 @@ export default function LegalChat() {
     });
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    setMessages((msgs) => {
+      if (msgs.length === 1 && msgs[0]?.id === "welcome") {
+        const content = buildWelcomeContent(locale);
+        if (msgs[0].content === content) return msgs;
+        return [{ ...msgs[0], content }];
+      }
+      return msgs;
+    });
+  }, [locale]);
 
   const scrollToBottom = useCallback((behavior = "auto") => {
     const el = messagesRef.current;
@@ -131,15 +149,18 @@ export default function LegalChat() {
       await persist(updated);
       const meta = getLastAiMeta();
       if (meta?.provider) {
-        setAiNote(`Dijawab via ${getProviderLabel(meta.provider)}${meta.model ? ` · ${meta.model}` : ""}`);
+        setAiNote(t("chat.answeredVia", {
+          provider: getProviderLabel(meta.provider),
+          model: meta.model ? ` · ${meta.model}` : "",
+        }));
       }
     } catch (e) {
-      const errMsg = getLastAiError() || e.message || "Gagal menghubungi AI.";
+      const errMsg = getLastAiError() || e.message || t("chat.errorContact");
       setError(errMsg);
       const errAssistant = {
         id: msgId(),
         role: "assistant",
-        content: `Maaf, saya tidak dapat menjawab saat ini.\n\n**Error:** ${errMsg}\n\nCoba ganti provider AI atau periksa API key di pengaturan deploy.`,
+        content: t("chat.errorSorry", { error: errMsg }),
         createdAt: Date.now(),
       };
       const updated = [...next, errAssistant];
@@ -152,8 +173,8 @@ export default function LegalChat() {
   };
 
   const handleClear = async () => {
-    if (!window.confirm("Hapus riwayat chat dan mulai percakapan baru?")) return;
-    const fresh = await clearChatMessages();
+    if (!window.confirm(t("chat.clearConfirm"))) return;
+    const fresh = await clearChatMessages(locale);
     setMessages(fresh);
     setError("");
     setAiNote("");
@@ -163,7 +184,7 @@ export default function LegalChat() {
   if (!ready) {
     return (
       <div className="view-enter page scrollbar" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-        Memuat chat hukum…
+        {t("chat.loading")}
       </div>
     );
   }
@@ -172,12 +193,12 @@ export default function LegalChat() {
     <div className="view-enter legal-chat-page">
       <div className="legal-chat-header glass">
         <p className="legal-chat-disclaimer legal-chat-intro">
-          Riset hukum Indonesia · bukan pengganti advokat
+          {t("chat.disclaimer")}
         </p>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--desktop">
           <AiProviderPicker compact />
-          <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title="Hapus riwayat" aria-label="Hapus riwayat">
+          <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title={t("chat.clearHistory")} aria-label={t("chat.clearHistory")}>
             <Trash2 size={15} />
           </button>
         </div>
@@ -189,11 +210,11 @@ export default function LegalChat() {
             className="legal-chat-settings-toggle"
             onClick={() => setAiPanelOpen((o) => !o)}
             aria-expanded={aiPanelOpen}
-            aria-label="Detail provider AI"
+            aria-label={t("chat.aiProviderDetail")}
           >
             {aiPanelOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
-          <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title="Hapus riwayat" aria-label="Hapus riwayat">
+          <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title={t("chat.clearHistory")} aria-label={t("chat.clearHistory")}>
             <Trash2 size={15} />
           </button>
         </div>
@@ -214,7 +235,7 @@ export default function LegalChat() {
       <div ref={messagesRef} className="legal-chat-messages scrollbar">
         {!loading && messages.length <= 1 && (
           <div className="legal-chat-suggestions legal-chat-suggestions-inline">
-            <span className="legal-chat-suggestions-label">Contoh pertanyaan</span>
+            <span className="legal-chat-suggestions-label">{t("chat.examples")}</span>
             <div className="legal-chat-chips">
               {SUGGESTED_PROMPTS.map((p) => (
                 <button key={p} type="button" className="legal-chat-chip" onClick={() => send(p)}>
@@ -235,7 +256,7 @@ export default function LegalChat() {
               </div>
             </div>
             <div className="legal-chat-bubble glass legal-chat-typing">
-              <Loader2 size={16} className="legal-chat-spin" /> Menyusun jawaban hukum…
+              <Loader2 size={16} className="legal-chat-spin" /> {t("chat.typing")}
             </div>
           </div>
         )}
@@ -259,7 +280,7 @@ export default function LegalChat() {
                 send();
               }
             }}
-            placeholder="Tanyakan seputar hukum Indonesia…"
+            placeholder={t("chat.placeholder")}
             disabled={loading}
           />
           <button type="submit" className="btn-primary legal-chat-send" disabled={loading || !input.trim()}>
