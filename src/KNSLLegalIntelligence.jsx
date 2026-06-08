@@ -11,6 +11,7 @@ import {
   RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
+import AiProviderPicker from "./AiProviderPicker.jsx";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -1318,6 +1319,7 @@ function Analysis({ seed }) {
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 15, height: 15 }} />
               <Sparkles size={13} className="gold-text" /> Agen AI (Fakta, Isu &amp; rerank Pasal) — uji unsur tetap deterministik
             </label>
+            {useAI && <AiProviderPicker compact />}
             <div>
               <div style={{ fontSize: 11.5, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 9 }}>Skenario contoh</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -3009,6 +3011,7 @@ function ContractReview() {
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 16, height: 16 }} />
               <Sparkles size={14} className="gold-text" /> Gunakan Agen AI Contract Review
             </label>
+            {useAI && <AiProviderPicker compact />}
             <button className="btn-primary" style={{ marginTop: 14, width: "100%", justifyContent: "center" }} onClick={analyze} disabled={busy || !text.trim()}>
               {stage === "reviewing" ? <><Activity size={16} /> Meninjau…</> : <><Zap size={16} /> Tinjau Kontrak</>}
             </button>

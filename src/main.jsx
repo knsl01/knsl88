@@ -11,7 +11,8 @@ import { createRoot } from "react-dom/client";
 import App from "./KNSLLegalIntelligence.jsx";
 
 if (typeof window !== "undefined") {
-  window.__CLAUDE_PROXY__ = "/api/claude";
+  window.__AI_PROXY__ = "/api/ai";
+  window.__CLAUDE_PROXY__ = "/api/claude"; // legacy OCR / direct Claude calls
 }
 
 /* ---------- iOS viewport fix ---------- */
