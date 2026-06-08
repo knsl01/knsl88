@@ -9,11 +9,16 @@ Aplikasi memakai **Supabase Auth** untuk signup, login, lupa password, sesi pers
 
 ## 2. Jalankan migrasi SQL
 
-Di **SQL Editor**, jalankan isi file:
+Di **SQL Editor**, jalankan **berurutan**:
 
-`supabase/migrations/20240608000000_auth_profiles_data.sql`
+1. `supabase/migrations/20240608000000_auth_profiles_data.sql`
+2. `supabase/migrations/20240608120000_rls_production.sql`
 
-Ini membuat tabel `profiles`, `case_analyses`, `contract_reviews`, `audit_log`, trigger profil otomatis, dan Row Level Security.
+Migrasi pertama: `profiles`, `case_analyses`, `contract_reviews`, `audit_log`, trigger profil.
+
+Migrasi kedua (production RLS): `projects`, `documents`, `conversations`, `messages`, `usage_tracking`, kebijakan RLS granular, dan hardening anti akses lintas user.
+
+Penjelasan keamanan lengkap: `supabase/SECURITY.md`
 
 ## 3. Konfigurasi Auth
 

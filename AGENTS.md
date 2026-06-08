@@ -34,5 +34,5 @@ Unauthenticated users hitting protected paths → `/login` (with `state.from` fo
 - Run `npm install` on startup (update script).
 - Dev server: `npm run dev` — no Docker required for frontend-only work.
 - Supabase auth is optional; without env vars the app falls back to local auth.
-- For full auth + cloud sync testing, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` secrets and run SQL migration from `supabase/migrations/`.
+- For full auth + cloud sync testing, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` secrets and run both SQL migrations in `supabase/migrations/` (see `supabase/SECURITY.md`).
 - AI features need `GEMINI_API_KEY` or `GROQ_API_KEY` on the deployment host for `/api/ai`.
