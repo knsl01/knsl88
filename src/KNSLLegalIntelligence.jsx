@@ -1337,7 +1337,7 @@ function Analysis({ seed }) {
             <div className="view-enter">
               {(aiBusy || data.source === "ai") && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "8px 12px", borderRadius: 9, background: aiBusy ? "rgba(216,192,138,0.07)" : "rgba(31,179,126,0.07)", border: `1px solid ${aiBusy ? "rgba(216,192,138,0.25)" : "rgba(31,179,126,0.28)"}`, fontSize: 12, color: "var(--silver)" }}>
-                  {aiBusy ? <><Activity size={13} className="gold-text" /> AI Counsel memperdalam Fakta &amp; Isu… (hasil heuristik ditampilkan dulu)</> : <><Sparkles size={13} className="emerald-text" /> Fakta &amp; Isu diperdalam AI · Pasal &amp; Uji Unsur deterministik · invarian {data.audit.passed}/{data.audit.total}</>}
+                  {aiBusy ? <><Activity size={13} className="gold-text" /> Agen AI memperdalam Fakta, Isu &amp; Pasal… (hasil heuristik ditampilkan dulu)</> : <><Sparkles size={13} className="emerald-text" /> Agen AI aktif · Uji Unsur deterministik · invarian {data.audit.passed}/{data.audit.total}</>}
                 </div>
               )}
               {/* summary strip */}
@@ -2929,7 +2929,7 @@ function ContractReview() {
 
   const analyze = async () => {
     if (!text.trim()) { setErr("Tidak ada teks untuk dianalisa."); return; }
-    setErr(""); setStage("reviewing"); setProg(0); setProgLabel(useAI ? "AI Counsel meninjau klausul…" : "Meninjau klausul…");
+    setErr(""); setStage("reviewing"); setProg(0); setProgLabel(useAI ? "Agen AI meninjau klausul…" : "Meninjau klausul…");
     try {
       const clauses = crSplitClauses(text);
       if (!clauses.length) { setErr("Tidak ada klausul terdeteksi."); setStage("idle"); return; }
