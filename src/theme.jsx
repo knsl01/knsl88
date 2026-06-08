@@ -269,6 +269,8 @@ export const STYLES = `
 .legal-chat-suggestions-label{font-size:10px;color:var(--muted-2);letter-spacing:.08em;text-transform:uppercase;}
 .legal-chat-suggestions-inline{margin-bottom:4px;}
 .legal-chat-footnote{font-size:10px;color:var(--muted-2);text-align:center;margin:4px 0 6px;padding:0 10px;flex-shrink:0;}
+.legal-chat-footnote-inline{display:none;}
+.legal-chat-footnote-desktop{display:block;}
 .legal-chat-row{display:flex;align-items:flex-start;gap:10px;max-width:100%;}
 .legal-chat-row-user{flex-direction:row-reverse;}
 .legal-chat-avatar{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:rgba(19,133,92,0.12);border:1px solid rgba(31,179,126,0.25);color:var(--emerald-bright);}
@@ -283,7 +285,8 @@ export const STYLES = `
 .legal-chat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .legal-chat-chip{padding:7px 10px;border-radius:999px;font-size:11px;color:var(--silver);background:rgba(255,255,255,0.03);border:1px solid var(--line);cursor:pointer;font-family:inherit;transition:border-color .25s,background .25s;text-align:left;line-height:1.35;}
 .legal-chat-chip:hover{border-color:rgba(31,179,126,0.4);background:rgba(31,179,126,0.06);color:var(--text);}
-.legal-chat-composer{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;margin:0 10px 6px;flex-shrink:0;}
+.legal-chat-composer{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:10px 12px;margin:0 10px 6px;flex-shrink:0;}
+.legal-chat-composer-row{display:flex;align-items:flex-end;gap:8px;width:100%;}
 .legal-chat-input{flex:1;resize:none;min-height:42px;max-height:100px;margin:0!important;font-size:16px;}
 .legal-chat-send{width:44px;height:44px;padding:0;display:grid;place-items:center;flex-shrink:0;border-radius:12px!important;margin:0!important;}
 @media(max-width:900px){
@@ -293,7 +296,23 @@ export const STYLES = `
   .legal-chat-header{margin:0 8px 4px;padding:8px 10px;}
   .legal-chat-toolbar--desktop{display:none!important;}
   .legal-chat-toolbar--mobile{display:flex;flex:1;align-items:center;min-width:0;}
-  .legal-chat-composer{margin:0 8px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));}
+  .legal-chat-page{padding-bottom:0;}
+  .legal-chat-messages{padding-bottom:8px;}
+  .legal-chat-composer{
+    margin:0;
+    padding:10px 12px 12px;
+    position:sticky;
+    bottom:calc(58px + env(safe-area-inset-bottom,0px));
+    z-index:35;
+    background:rgba(8,10,9,0.97);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border-top:1px solid rgba(255,255,255,0.08);
+    border-radius:0!important;
+    box-shadow:0 -8px 24px rgba(0,0,0,0.35);
+  }
+  .legal-chat-footnote-desktop{display:none;}
+  .legal-chat-footnote-inline{display:block;font-size:10px;color:var(--muted-2);margin:0 0 6px;text-align:left;width:100%;}
   .legal-chat-chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none;}
   .legal-chat-chips::-webkit-scrollbar{display:none;}
   .legal-chat-chip{flex-shrink:0;max-width:85vw;}

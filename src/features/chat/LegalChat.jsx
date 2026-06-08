@@ -199,26 +199,29 @@ export default function LegalChat() {
         className="legal-chat-composer glass"
         onSubmit={(e) => { e.preventDefault(); send(); }}
       >
-        <textarea
-          ref={inputRef}
-          className="field legal-chat-input"
-          rows={2}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="Tanyakan seputar hukum Indonesia…"
-          disabled={loading}
-        />
-        <button type="submit" className="btn-primary legal-chat-send" disabled={loading || !input.trim()}>
-          {loading ? <Loader2 size={18} className="legal-chat-spin" /> : <Send size={18} />}
-        </button>
+        {aiNote && <p className="legal-chat-footnote legal-chat-footnote-inline">{aiNote}</p>}
+        <div className="legal-chat-composer-row">
+          <textarea
+            ref={inputRef}
+            className="field legal-chat-input"
+            rows={2}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Tanyakan seputar hukum Indonesia…"
+            disabled={loading}
+          />
+          <button type="submit" className="btn-primary legal-chat-send" disabled={loading || !input.trim()}>
+            {loading ? <Loader2 size={18} className="legal-chat-spin" /> : <Send size={18} />}
+          </button>
+        </div>
       </form>
-      {aiNote && <p className="legal-chat-footnote">{aiNote}</p>}
+      {aiNote && <p className="legal-chat-footnote legal-chat-footnote-desktop">{aiNote}</p>}
     </div>
   );
 }
