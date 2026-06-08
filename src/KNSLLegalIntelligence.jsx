@@ -10,6 +10,7 @@ import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
+import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -380,20 +381,8 @@ const _AI_CONF = ["High", "Moderate–High", "Moderate", "Low", "Not assessable"
 const _aiNormCat = (c) => { c = String(c || "").toLowerCase().trim(); return _AI_FACT_CATS.includes(c) ? c : (_AI_CAT_MAP[c] || "action"); };
 const _aiStripPasal = (s) => String(s == null ? "" : s).replace(/\bpasal\s*\d+[a-z]?/ig, "").replace(/\bpsl\.?\s*\d+/ig, "").replace(/\s{2,}/g, " ").trim();
 
-async function aiAnalyzeChronology(text) {
-  const sys =
-    "Anda jaksa/advokat senior Indonesia yang menstrukturkan kronologi perkara. Kembalikan JSON KETAT saja (tanpa prosa/markdown). " +
-    "Skema: {\"facts\":[{\"category\":\"party|timeline|transaction|document|action|financial|relationship\",\"statement\":string,\"certainty\":\"asserted|alleged|uncertain\",\"externalLabel\":boolean}]," +
-    "\"missingFacts\":[{\"category\":string,\"description\":string,\"neededFor\":string}]," +
-    "\"issues\":[{\"category\":\"civil|criminal|corporate|procedural\",\"statement\":string,\"confidence\":\"High|Moderate–High|Moderate|Low|Not assessable\",\"factIndexes\":[number],\"seedKeywords\":string}]}. " +
-    "ATURAN: (1) Pecah jadi fakta atomik; tegaskan SIAPA melakukan APA terhadap SIAPA. (2) Hormati negasi ('belum membayar' ≠ 'membayar'). (3) certainty='alleged' untuk fakta yang masih dugaan ('diduga','diduga','disinyalir'); 'asserted' bila tegas. (4) externalLabel=true bila pernyataan adalah label dari pihak luar (mis. polisi 'menetapkan tersangka pembunuhan') — jangan diadopsi sbg kesimpulan. (5) JANGAN sebut pasal/UU di fact maupun issue. (6) issue.factIndexes menunjuk indeks pada array facts. (7) seedKeywords = kata kunci hukum Indonesia untuk menarik pasal (mis. 'pembunuhan senjata sengaja' / 'wanprestasi utang perjanjian'). (8) Identifikasi juga isu yang TERSIRAT (mis. unsur perencanaan, isu prosedural pembuktian) dan kategorikan tepat. Jangan memvonis. Jawab dalam Bahasa Indonesia.";
-  const body = { model: "claude-sonnet-4-20250514", max_tokens: 1500, messages: [{ role: "user", content: sys + "\n\nKRONOLOGI:\n" + String(text).slice(0, 9000) }] };
-  const ep = (typeof window !== "undefined" && window.__CLAUDE_PROXY__) ? window.__CLAUDE_PROXY__ : "https://api.anthropic.com/v1/messages";
-  const resp = await fetch(ep, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!resp.ok) throw new Error("AI HTTP " + resp.status);
-  const data = await resp.json();
-  const txt = (data.content || []).map((b) => (b.type === "text" ? b.text : "")).join("").trim().replace(/```json|```/g, "").trim();
-  return JSON.parse(txt);
+async function aiAnalyzeChronology(text, hint) {
+  return CaseAnalysisAgent.analyzeChronology(text, hint || {});
 }
 
 /* Assemble live-shape fm/is from raw AI output, recomputing certainties and
@@ -453,14 +442,32 @@ function buildFromAI(text, filter, raw) {
   return { fm, is, rs, etr, audit, passed: audit.passed, source: "ai" };
 }
 
-/* Always returns a valid pipeline result. Heuristic is the floor; AI is used
-   only if it parses, yields content, and does NOT regress the invariant audit. */
+/* Always returns a valid pipeline result. Heuristic is the floor; AI agent upgrades
+   stages 1–2 (+ optional stage-3 rerank) only if audit does not regress. */
 async function aiRunPipeline(text, filter) {
   const heur = runPipeline(text, filter); heur.source = "heuristic";
   try {
-    const raw = await aiAnalyzeChronology(text);
-    const built = buildFromAI(text, filter, raw);
-    if (built && built.fm.facts.length && built.is.issues.length && built.audit.passed >= heur.audit.passed) return built;
+    const hint = {
+      heuristicFacts: heur.fm.facts.map((f) => f.statement),
+      heuristicIssues: heur.is.issues.map((i) => i.statement),
+    };
+    const raw = await aiAnalyzeChronology(text, hint);
+    let built = buildFromAI(text, filter, raw);
+    if (!built || !built.fm.facts.length || !built.is.issues.length) return heur;
+
+    try {
+      const reranked = await CaseAnalysisAgent.rerankStatutes(built.rs, built.fm.facts, built.is.issues);
+      if (reranked) {
+        built.rs = reranked;
+        built.etr = testElements(built.rs, built.fm);
+        built.audit = auditPipeline(built.fm, built.is, built.rs, built.etr);
+        built.passed = built.audit.passed;
+      }
+    } catch (e) { /* rerank optional — keep deterministic retrieval */ }
+
+    const aiBetter = built.audit.passed > heur.audit.passed
+      || (built.audit.passed === heur.audit.passed && built.fm.facts.length >= heur.fm.facts.length);
+    if (aiBetter) { built.source = "ai"; return built; }
   } catch (e) { /* network/parse/invalid → keep heuristic */ }
   return heur;
 }
@@ -1309,7 +1316,7 @@ function Analysis({ seed }) {
             <button className="btn-primary" onClick={() => run()} disabled={loading}>{loading ? <><Activity size={16} /> Menjalankan pipeline...</> : <><Zap size={16} /> Jalankan Analisa</>}</button>
             <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 12.5, color: "var(--silver)", marginTop: -2 }}>
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 15, height: 15 }} />
-              <Sparkles size={13} className="gold-text" /> Penalaran AI (Fakta &amp; Isu) — pasal &amp; uji unsur tetap deterministik
+              <Sparkles size={13} className="gold-text" /> Agen AI (Fakta, Isu &amp; rerank Pasal) — uji unsur tetap deterministik
             </label>
             <div>
               <div style={{ fontSize: 11.5, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 9 }}>Skenario contoh</div>
@@ -2520,17 +2527,7 @@ function crExtractDataPoints(raw) {
   ];
 }
 async function crAIDataPoints(text, ctx) {
-  const sys = "You extract key business terms from an Indonesian contract. Return STRICT JSON only, no prose/markdown. " +
-    "Schema: {\"points\":{\"Para pihak\":string,\"Nilai kontrak\":string,\"Termin pembayaran\":string,\"Denda keterlambatan\":string,\"Tanggal mulai\":string,\"Tanggal berakhir\":string,\"Jangka waktu\":string,\"Perpanjangan otomatis\":string,\"Masa pemberitahuan pengakhiran\":string,\"Hukum yang berlaku\":string,\"Forum penyelesaian sengketa\":string}}. " +
-    "Use \"-\" if a value is not stated. Respond in Indonesian.";
-  const body = { model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: sys + "\n\nCONTRACT:\n" + text.slice(0, 9000) }] };
-  const crEndpoint = (typeof window !== "undefined" && window.__CLAUDE_PROXY__) ? window.__CLAUDE_PROXY__ : "https://api.anthropic.com/v1/messages";
-  const resp = await fetch(crEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!resp.ok) throw new Error("AI HTTP " + resp.status);
-  const data = await resp.json();
-  const txt = (data.content || []).map((b) => (b.type === "text" ? b.text : "")).join("").trim().replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(txt);
-  return parsed.points || {};
+  return ContractReviewAgent.extractDataPoints(text, ctx);
 }
 function crMergeDataPoints(heur, aiPoints) {
   if (!aiPoints) return heur;
@@ -2636,39 +2633,23 @@ function crHeuristicOne(clause) {
   };
 }
 
-/* ---------- AI review via in-artifact Anthropic API ---------- */
-async function crAIReviewBatch(clauses, ctx) {
-  const list = clauses.map((c) => ({ idx: c.idx, num: c.num, type: c.type, heading: c.heading, text: c.text.slice(0, 1200) }));
-  const sys = "You are a senior Indonesian contract lawyer reviewing a contract from the perspective of: " + (ctx || "the reviewing party") +
-    ". For EACH clause return strict JSON only, no prose, no markdown. Schema: {\"reviews\":[{\"idx\":number,\"summary\":string,\"risk\":\"high\"|\"med\"|\"low\",\"legalConcern\":string,\"commercialConcern\":string,\"reasoning\":string,\"deficiency\":string[],\"suggestedRedraft\":string,\"missing\":string[],\"improvements\":string[]}]}. " +
-    "'reasoning' = WHY it is risky (concrete, 1-3 sentences). 'deficiency' = specific parts that are lacking/too narrow (e.g. a force majeure listing only natural disaster & fire lacks a catch-all and notice/consequence provisions). 'suggestedRedraft' = a concrete, ready-to-use replacement wording for the clause (contract style, numbered if needed). Respond in Indonesian. Do NOT pronounce a verdict; give risk, analysis, and concrete redrafts only.";
-  const body = {
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1000,
-    messages: [{ role: "user", content: sys + "\n\nCLAUSES:\n" + JSON.stringify(list) }],
-  };
-  const crEndpoint = (typeof window !== "undefined" && window.__CLAUDE_PROXY__) ? window.__CLAUDE_PROXY__ : "https://api.anthropic.com/v1/messages";
-  const resp = await fetch(crEndpoint, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  if (!resp.ok) throw new Error("AI HTTP " + resp.status);
-  const data = await resp.json();
-  const txt = (data.content || []).map((b) => (b.type === "text" ? b.text : "")).join("").trim();
-  const clean = txt.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(clean);
-  const map = {};
-  for (const r of (parsed.reviews || [])) map[r.idx] = r;
-  return map;
+/* ---------- AI review via KNSL Contract Review Agent ---------- */
+async function crAIReviewBatch(clauses, ctx, contractContext) {
+  return ContractReviewAgent.reviewClauses(clauses, ctx, contractContext);
 }
-async function crReview(clauses, ctx, useAI, onProgress) {
+async function crReview(clauses, ctx, useAI, onProgress, fullText) {
   const out = clauses.map((c) => ({ ...c, review: crHeuristicOne(c) }));
   if (!useAI) { if (onProgress) onProgress(100); return out; }
+  let contractContext = null;
+  if (fullText && fullText.trim()) {
+    try { contractContext = await ContractReviewAgent.extractContractContext(fullText, ctx); } catch (e) { /* optional */ }
+  }
   const B = 3; // smaller batch keeps each richer response within the output budget
   let done = 0;
   for (let i = 0; i < clauses.length; i += B) {
     const batch = clauses.slice(i, i + B);
     try {
-      const map = await crAIReviewBatch(batch, ctx);
+      const map = await crAIReviewBatch(batch, ctx, contractContext);
       for (const c of batch) {
         const r = map[c.idx];
         const h = out[c.idx].review;
@@ -2952,7 +2933,7 @@ function ContractReview() {
     try {
       const clauses = crSplitClauses(text);
       if (!clauses.length) { setErr("Tidak ada klausul terdeteksi."); setStage("idle"); return; }
-      const reviewed = await crReview(clauses, ctx, useAI, (p) => setProg(p));
+      const reviewed = await crReview(clauses, ctx, useAI, (p) => setProg(p), text);
       const risk = crRiskEngine(reviewed);
       let dataPoints = crExtractDataPoints(text);
       if (useAI) { try { dataPoints = crMergeDataPoints(dataPoints, await crAIDataPoints(text, ctx)); } catch (e) { /* keep heuristic */ } }
@@ -3026,7 +3007,7 @@ function ContractReview() {
             </select>
             <label style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 12, cursor: "pointer", fontSize: 13, color: "var(--silver)" }}>
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 16, height: 16 }} />
-              <Sparkles size={14} className="gold-text" /> Gunakan AI Counsel (Claude)
+              <Sparkles size={14} className="gold-text" /> Gunakan Agen AI Contract Review
             </label>
             <button className="btn-primary" style={{ marginTop: 14, width: "100%", justifyContent: "center" }} onClick={analyze} disabled={busy || !text.trim()}>
               {stage === "reviewing" ? <><Activity size={16} /> Meninjau…</> : <><Zap size={16} /> Tinjau Kontrak</>}
