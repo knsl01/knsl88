@@ -10,6 +10,7 @@
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.0",
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
     "lucide-react": "^0.383.0",

@@ -9,6 +9,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./KNSLLegalIntelligence.jsx";
+import { AuthProvider } from "./contexts/AuthContext.jsx";
+import AuthGate from "./components/auth/AuthGate.jsx";
 
 if (typeof window !== "undefined") {
   window.__AI_PROXY__ = "/api/ai";
@@ -161,7 +163,11 @@ function mount() {
   try {
     createRoot(rootEl).render(
       <ErrorBoundary>
-        <App />
+        <AuthProvider>
+          <AuthGate>
+            <App />
+          </AuthGate>
+        </AuthProvider>
       </ErrorBoundary>
     );
   } catch (err) {
