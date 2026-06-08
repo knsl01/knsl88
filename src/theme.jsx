@@ -54,6 +54,8 @@ export const STYLES = `
 .main{flex:1;min-width:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 .page{padding:0 34px 40px;overflow-y:auto;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:24px 34px 20px;gap:16px;}
+.topbar .rise{flex:1;min-width:0;}
+.topbar-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 .hamburger{display:none;width:44px;height:44px;border-radius:12px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 .topbar-search{display:flex;align-items:center;gap:10px;padding:10px 15px;border-radius:12px;width:280px;}
 .backdrop{display:none;}
@@ -186,7 +188,8 @@ export const STYLES = `
     position:relative;
     z-index:10;
   }
-  .topbar h1{font-size:22px !important;line-height:1.15 !important;}
+  .topbar h1,.topbar-title{font-size:22px !important;line-height:1.15 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important;max-width:100%;}
+  .topbar .rise{flex:1;min-width:0;}
   .topbar .rise>div:first-child{font-size:10px !important;margin-bottom:4px !important;}
   .hamburger{align-self:flex-start;margin-top:2px;}
 

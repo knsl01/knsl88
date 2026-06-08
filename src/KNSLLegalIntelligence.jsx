@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   LayoutDashboard, Scale, FileSignature, BookOpen, ShieldCheck,
-  Search, Bell, Menu, X, ChevronRight, Gavel, Clock, CalendarDays,
+  Search, Bell, Menu, X, ChevronRight, Gavel, Clock,
   TrendingUp, AlertTriangle, CheckCircle2, Sparkles, FileText,
-  ArrowUpRight, Briefcase, Users, Activity, Settings, Zap, Info,
+  Activity, Settings, Zap, Info,
   FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History, LogOut, User,
 } from "lucide-react";
 import {
-  AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer,
   RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
@@ -19,6 +19,7 @@ import { useAuth } from "./contexts/AuthContext.jsx";
 import { isSupabaseConfigured } from "./lib/supabase.js";
 import { saveCaseAnalysisCloud, saveContractReviewCloud } from "./services/supabaseData.js";
 import ProfilePanel from "./components/profile/ProfilePanel.jsx";
+import Dashboard from "./features/dashboard/Dashboard.jsx";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -560,22 +561,7 @@ const SCENARIOS = {
 };
 
 
-/* ---------- shared demo data ---------- */
-const caseTrend = [{ m: "Jan", v: 18 }, { m: "Feb", v: 24 }, { m: "Mar", v: 22 }, { m: "Apr", v: 31 }, { m: "Mei", v: 28 }, { m: "Jun", v: 37 }];
-const deadlines = [
-  { t: "Memori Banding — PT Anugrah vs. Sinarmas", d: "Hari ini · 16:00", risk: "high" },
-  { t: "Sidang Pembuktian — Perkara Pidana No. 442", d: "Besok · 09:30", risk: "med" },
-  { t: "Review Kontrak Akuisisi Mandala Group", d: "5 Jun · 11:00", risk: "med" },
-  { t: "Mediasi Sengketa Tanah — Klien Wijaya", d: "9 Jun · 14:00", risk: "low" },
-];
-const docket = [
-  { id: "KNSL-2401", name: "PT Anugrah vs. Sinarmas Tbk", area: "Perdata Komersial", stage: "Banding", risk: "high", rate: 42 },
-  { id: "KNSL-2389", name: "Akuisisi Aset Mandala Group", area: "Korporasi / M&A", stage: "Due Diligence", risk: "med", rate: 71 },
-  { id: "KNSL-2377", name: "Negara vs. Hartono", area: "Pidana Khusus", stage: "Pembuktian", risk: "med", rate: 58 },
-  { id: "KNSL-2350", name: "Sengketa Lahan — Wijaya", area: "Pertanahan", stage: "Mediasi", risk: "low", rate: 83 },
-];
 const Badge = ({ risk, children }) => <span className={`badge ${risk === "high" ? "badge-high" : risk === "med" ? "badge-med" : "badge-low"}`}>{children}</span>;
-const riskLabel = (r) => (r === "high" ? "Tinggi" : r === "med" ? "Menengah" : "Rendah");
 
 /* ---------- brand mark: scales-of-justice seal ---------- */
 
@@ -864,7 +850,7 @@ function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
         <div className="hamburger glass" onClick={onMenu}><Menu size={20} style={{ color: "var(--silver)" }} /></div>
         <div className="rise" style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11, letterSpacing: "2px", color: "var(--champagne)", textTransform: "uppercase", marginBottom: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subtitle}</div>
-          <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, margin: 0, lineHeight: 1 }}>{title}</h1>
+          <h1 className="serif topbar-title" style={{ fontSize: 26, fontWeight: 600, margin: 0, lineHeight: 1.1 }}>{title}</h1>
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -880,159 +866,6 @@ function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
         </div>
       </div>
     </header>
-  );
-}
-
-/* ---------- dashboard ---------- */
-function Metric({ icon: Icon, label, value, delta, suffix, i, editing, onChange }) {
-  const inp = {
-    width: "100%", boxSizing: "border-box", background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(31,179,126,0.35)", borderRadius: 10, color: "var(--text)",
-    padding: "8px 10px", fontFamily: "inherit", marginTop: 6, outline: "none",
-  };
-  return (
-    <div className="glass glass-hover rise" style={{ padding: 22, animationDelay: `${i * 0.07}s` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div style={{ width: 40, height: 40, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(19,133,92,0.12)", border: "1px solid rgba(31,179,126,0.2)" }}><Icon size={19} className="emerald-text" strokeWidth={1.8} /></div>
-        {editing ? (
-          <input value={delta} onChange={(e) => onChange("delta", e.target.value)} placeholder="cth: 4%" style={{ ...inp, width: 74, marginTop: 0, textAlign: "center", fontSize: 12 }} />
-        ) : (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--emerald-bright)", fontWeight: 600 }}><ArrowUpRight size={13} />{delta}</span>
-        )}
-      </div>
-      {editing ? (
-        <>
-          <input value={value} onChange={(e) => onChange("value", e.target.value)} inputMode="numeric" placeholder="Angka" style={{ ...inp, fontSize: 22, fontWeight: 700 }} />
-          <input value={label} onChange={(e) => onChange("label", e.target.value)} placeholder="Label" style={{ ...inp, fontSize: 13 }} />
-        </>
-      ) : (
-        <>
-          <div className="gauge-num" style={{ fontSize: 30, fontWeight: 700, marginTop: 16, lineHeight: 1 }}>{value}<span style={{ fontSize: 15, color: "var(--muted)", fontWeight: 500 }}>{suffix}</span></div>
-          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 7 }}>{label}</div>
-        </>
-      )}
-    </div>
-  );
-}
-const DASH_DEFAULT = [
-  { icon: Briefcase, label: "Kasus Aktif", value: "37", suffix: "", delta: "12%" },
-  { icon: TrendingUp, label: "Rata-rata Win-Rate", value: "68", suffix: "%", delta: "4%" },
-  { icon: Clock, label: "Tenggat Minggu Ini", value: "9", suffix: "", delta: "2" },
-  { icon: Users, label: "Klien Korporat", value: "24", suffix: "", delta: "3" },
-];
-
-function Dashboard({ editing, setEditing }) {
-  const [metrics, setMetrics] = useState(DASH_DEFAULT);
-  const prevEditing = useRef(false);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        if (typeof window !== "undefined" && window.storage) {
-          const r = await window.storage.get("dash:metrics");
-          if (alive && r && r.value) {
-            const saved = JSON.parse(r.value);
-            setMetrics(DASH_DEFAULT.map((d, idx) => ({ ...d, ...(saved[idx] || {}), icon: d.icon })));
-          }
-        }
-      } catch (e) { /* abaikan, pakai default */ }
-    })();
-    return () => { alive = false; };
-  }, []);
-
-  const update = (idx, field, val) =>
-    setMetrics((ms) => ms.map((m, j) => (j === idx ? { ...m, [field]: val } : m)));
-
-  const persist = async (data) => {
-    try {
-      if (typeof window !== "undefined" && window.storage) {
-        const payload = data.map(({ label, value, suffix, delta }) => ({ label, value, suffix, delta }));
-        await window.storage.set("dash:metrics", JSON.stringify(payload));
-      }
-    } catch (e) { /* abaikan */ }
-  };
-
-  // Simpan otomatis ketika keluar dari mode edit (transisi true -> false)
-  useEffect(() => {
-    if (prevEditing.current && !editing) persist(metrics);
-    prevEditing.current = editing;
-  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const resetDefault = () => setMetrics(DASH_DEFAULT.map((d) => ({ ...d })));
-
-  return (
-    <div className="view-enter page scrollbar">
-      {editing && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.4 }}>Mode edit — ubah angka, tekan ✓ di atas untuk simpan.</span>
-          <button className="btn-ghost" onClick={resetDefault} style={{ fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <History size={14} /> Reset
-          </button>
-        </div>
-      )}
-      <div className="metric-grid">
-        {metrics.map((m, idx) => (
-          <Metric
-            key={idx} i={idx} icon={m.icon} label={m.label} value={m.value}
-            suffix={m.suffix} delta={m.delta} editing={editing}
-            onChange={(field, val) => update(idx, field, val)}
-          />
-        ))}
-      </div>
-      <div className="two-col">
-        <div className="glass glass-hover rise" style={{ padding: 24, animationDelay: ".25s" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div><h3 className="serif" style={{ fontSize: 19, margin: 0 }}>Analitik Perkara</h3><p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0 0" }}>Volume kasus · 6 bulan terakhir</p></div>
-            <span className="badge badge-low"><Activity size={12} /> +37% YoY</span>
-          </div>
-          <div style={{ height: 210, marginTop: 18 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={caseTrend} margin={{ top: 8, right: 6, left: -22, bottom: 0 }}>
-                <defs><linearGradient id="em" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1fb37e" stopOpacity={0.5} /><stop offset="100%" stopColor="#1fb37e" stopOpacity={0} /></linearGradient></defs>
-                <CartesianGrid strokeDasharray="3 6" stroke="rgba(216,192,138,0.08)" vertical={false} />
-                <XAxis dataKey="m" stroke="#5c6863" tickLine={false} axisLine={false} fontSize={12} /><YAxis stroke="#5c6863" tickLine={false} axisLine={false} fontSize={12} />
-                <Tooltip contentStyle={{ background: "#101413", border: "1px solid rgba(216,192,138,0.2)", borderRadius: 12, color: "#eef2ef", fontSize: 13 }} cursor={{ stroke: "rgba(216,192,138,0.2)" }} />
-                <Area type="monotone" dataKey="v" stroke="#1fb37e" strokeWidth={2.5} fill="url(#em)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="glass glass-hover rise" style={{ padding: 24, animationDelay: ".32s" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16 }}><CalendarDays size={18} className="gold-text" /><h3 className="serif" style={{ fontSize: 19, margin: 0 }}>Kalender Litigasi</h3></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-            {deadlines.map((d, i) => (
-              <div key={i} className="clause-flag" style={{ borderColor: d.risk === "high" ? "#dc4437" : d.risk === "med" ? "#d8c08a" : "#1fb37e" }}>
-                <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.4 }}>{d.t}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}><Clock size={12} style={{ color: "var(--muted)" }} /><span style={{ fontSize: 12, color: "var(--muted)" }}>{d.d}</span></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="glass rise" style={{ padding: 24, marginTop: 18, animationDelay: ".4s" }}>
-        <h3 className="serif" style={{ fontSize: 19, margin: "0 0 16px" }}>Daftar Perkara Berjalan</h3>
-        <div className="tablewrap scrollbar">
-          <div className="docket-row" style={{ fontSize: 11, letterSpacing: "1px", color: "var(--muted-2)", textTransform: "uppercase", paddingBottom: 12 }}>
-            <span>No.</span><span>Perkara</span><span>Bidang</span><span>Tahap</span><span>Win-Rate</span><span>Status</span>
-          </div>
-          <div className="hairline" />
-          {docket.map((c) => (
-            <div key={c.id} className="docket-row" style={{ padding: "14px 0", borderBottom: "1px solid rgba(216,192,138,0.06)" }}>
-              <span className="gold-text" style={{ fontSize: 12.5, fontWeight: 600 }}>{c.id}</span>
-              <span style={{ fontSize: 13.5, fontWeight: 500 }}>{c.name}</span>
-              <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{c.area}</span>
-              <span style={{ fontSize: 12.5, color: "var(--silver)" }}>{c.stage}</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ flex: 1, height: 5, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}><div style={{ width: `${c.rate}%`, height: "100%", background: c.rate > 65 ? "linear-gradient(90deg,#13855c,#1fb37e)" : c.rate > 50 ? "linear-gradient(90deg,#b89a52,#d8c08a)" : "linear-gradient(90deg,#a83b30,#dc4437)" }} /></div>
-                <span className="gauge-num" style={{ fontSize: 12.5, fontWeight: 600 }}>{c.rate}%</span>
-              </div>
-              <Badge risk={c.risk}>{riskLabel(c.risk)}</Badge>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -3434,7 +3267,7 @@ export default function App() {
             ) : null}
           />
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-            {active === "dashboard" && <Dashboard editing={dashEditing} setEditing={setDashEditing} />}
+            {active === "dashboard" && <Dashboard editing={dashEditing} />}
             {active === "analysis" && <Analysis seed={seed} />}
             {active === "drafting" && <Drafting />}
             {active === "research" && <Research seed={seed} />}
