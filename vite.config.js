@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { routeAI } from "./api/aiRouter.mjs";
+import { apiDevMiddleware } from "./scripts/api-dev-middleware.mjs";
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -69,6 +70,7 @@ function aiDevProxy() {
         }
       };
 
+      server.middlewares.use(apiDevMiddleware());
       server.middlewares.use("/api/ai", (req, res) => handle(req, res));
       server.middlewares.use("/api/claude", (req, res) => handle(req, res, "claude"));
     },

@@ -13,6 +13,7 @@ import {
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
+import { checkBackend, login as apiLogin, register as apiRegister, getToken, saveCaseAnalysis, saveContractReview, clearToken } from "./knslApi.js";
 
 /* ============================================================
    KNSL LEGAL INTELLIGENCE — v2 (responsive + pasal engine)
@@ -841,6 +842,7 @@ function storeUser(user) {
 
 function clearStoredUser() {
   localStorage.removeItem("knsl:auth");
+  clearToken();
   if (typeof window !== "undefined") window.__KNSL_USER_ID__ = "";
 }
 
@@ -863,6 +865,9 @@ function LoginScreen({ onLogin }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
+  const [serverMode, setServerMode] = useState(false);
+
+  useEffect(() => { checkBackend().then(setServerMode); }, []);
 
   const doLogin = async () => {
     setError(""); setSuccess("");
@@ -871,6 +876,13 @@ function LoginScreen({ onLogin }) {
     if (!u || !pw) { setError("Isi username dan password."); return; }
     setBusy(true);
     try {
+      if (await checkBackend()) {
+        const { user } = await apiLogin(u, pw);
+        storeUser(user);
+        setBusy(false);
+        onLogin(user);
+        return;
+      }
       const accs = getAccounts();
       const acc = accs[u];
       if (!acc) {
@@ -895,6 +907,14 @@ function LoginScreen({ onLogin }) {
     if (!password || password.length < 6) { setError("Password minimal 6 karakter."); return; }
     setBusy(true);
     try {
+      if (await checkBackend()) {
+        const { user } = await apiRegister({ name: name.trim(), username: u, password });
+        storeUser(user);
+        setBusy(false);
+        setSuccess("Akun server dibuat — data akan tersimpan di cloud.");
+        onLogin(user);
+        return;
+      }
       const accs = getAccounts();
       if (accs[u]) {
         // Akun sudah ada → langsung coba login
@@ -942,6 +962,11 @@ function LoginScreen({ onLogin }) {
           <p style={{ fontSize: 15, color: "var(--silver)", marginTop: 16, lineHeight: 1.6, maxWidth: 340, margin: "16px auto 0" }}>
             Platform AI untuk praktisi hukum Indonesia — analisa kasus, drafting, riset pasal, dan review kontrak dalam satu sistem.
           </p>
+          {serverMode && (
+            <p style={{ fontSize: 12, color: "var(--emerald-bright)", marginTop: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(31,179,126,0.08)", border: "1px solid rgba(31,179,126,0.25)" }}>
+              ☁ Backend aktif — akun &amp; riwayat analisa tersimpan di server (PostgreSQL)
+            </p>
+          )}
 
           {/* tabs login / register */}
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 28 }}>
@@ -1290,7 +1315,13 @@ function Analysis({ seed }) {
     await new Promise((r) => setTimeout(r, 250));
     if (useAI) {
       setAiBusy(true);
-      try { const r = await aiRunPipeline(input, flt); setData(r); setLoading(false); setTab("facts"); }
+      try {
+        const r = await aiRunPipeline(input, flt);
+        setData(r); setLoading(false); setTab("facts");
+        if (getToken()) {
+          saveCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: r.source, aiStatus: r.aiStatus, payload: r }).catch(() => {});
+        }
+      }
       catch (e) {
         const heur = runPipeline(input, flt);
         heur.source = "heuristic"; heur.aiStatus = "error"; heur.aiError = String(e.message || e);
@@ -1301,6 +1332,9 @@ function Analysis({ seed }) {
       const heur = runPipeline(input, flt);
       heur.source = "heuristic"; heur.aiStatus = "off";
       setData(heur); setLoading(false); setTab("facts");
+      if (getToken()) {
+        saveCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "off", payload: heur }).catch(() => {});
+      }
     }
   };
   const run = (text) => { doRun(text != null ? text : q, filter); };
@@ -3004,6 +3038,7 @@ function ContractReview() {
       if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, getAiProvider()) + " (hasil heuristik tetap ditampilkan)");
       await crSaveRecord(record);
       await crAudit("analyze_contract", record.name + " · skor " + risk.score);
+      if (getToken()) saveContractReview(record).catch(() => {});
       setRec(record); setHistory(await crListIndex()); setStage("done"); setTab("summary");
     } catch (e) { setErr(e.message || "Analisa gagal."); setStage("idle"); }
   };
