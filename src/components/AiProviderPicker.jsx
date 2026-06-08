@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel } from "./aiProviders.js";
+import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel } from "../services/ai/providers.js";
 
 /** Pemilih provider AI — native select agar tidak tertutup overflow parent. */
 export default function AiProviderPicker({ compact }) {

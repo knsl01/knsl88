@@ -2,7 +2,8 @@
 
 ## Stack
 
-- **Frontend**: React 18 + Vite (`src/KNSLLegalIntelligence.jsx`, entry `src/main.jsx`)
+- **Frontend**: React 18 + Vite (entry `src/main.jsx` → `src/app/App.jsx`)
+- **Architecture**: See `ARCHITECTURE.md` for folder layout and layers
 - **Auth**: Supabase when `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set; else local login
 - **AI**: `/api/ai` proxy (Gemini/Groq/Ollama) — see `src/PANDUAN_AI_GRATIS.md`
 - **Optional backend**: Vercel serverless + PostgreSQL — see `src/PANDUAN_BACKEND.md`
