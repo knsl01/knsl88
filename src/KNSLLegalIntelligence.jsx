@@ -23,6 +23,7 @@ import ProfilePanel from "./components/profile/ProfilePanel.jsx";
 import UserAvatar from "./components/profile/UserAvatar.jsx";
 import Dashboard from "./features/dashboard/Dashboard.jsx";
 import LegalChat from "./features/chat/LegalChat.jsx";
+import DocumentScan from "./features/scan/DocumentScan.jsx";
 import { useLocalUser } from "./hooks/useLocalUser.js";
 import { storeUser, clearStoredUser } from "./lib/localAuth.js";
 import { ACTIVE_TO_ROUTE, ROUTES, routeToActive } from "./routes/paths.js";
@@ -3238,6 +3239,7 @@ export default function App() {
   const sendIntake = (target, text, name) => {
     if (target === "contract") { if (typeof window !== "undefined") window.__KNSL_INTAKE__ = { text, name }; goTo("contract"); }
     else if (target === "analysis") { setSeed({ q: text, n: Date.now() }); goTo("analysis"); }
+    else if (target === "research") { setSeed({ q: text.slice(0, 800), n: Date.now() }); goTo("research"); }
     setNavOpen(false);
   };
   return (
@@ -3274,7 +3276,7 @@ export default function App() {
             {active === "analysis" && <Analysis seed={seed} />}
             {active === "drafting" && <Drafting />}
             {active === "research" && <Research seed={seed} />}
-            {active === "scan" && <ScanDoc onSend={sendIntake} />}
+            {active === "scan" && <DocumentScan onSend={sendIntake} />}
             {active === "contract" && <ContractReview />}
             {active === "conflict" && <Conflict />}
             {active === "profile" && <ProfilePanel />}
