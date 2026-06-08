@@ -123,15 +123,20 @@ export default function DocumentScan({ onSend }) {
     try {
       const next = [...pages];
       let fail = 0;
+      let lastErr = "";
       for (let i = 0; i < next.length; i++) {
         setProgLabel(t("scan.correctPage", { n: i + 1, total: next.length }));
         try {
           const r = await correctPage(next[i]);
           next[i] = { ...next[i], dataUrl: r.dataUrl, w: r.w, h: r.h, corrected: true, quality: r.quality };
-        } catch { fail++; }
+        } catch (e) {
+          fail++;
+          lastErr = e?.message || "";
+        }
         setProg(Math.round(((i + 1) / next.length) * 100));
         setPages([...next]);
       }
+      if (fail === next.length && lastErr) setErr(lastErr);
       if (fail === next.length) setErr(t("scan.correctFailAll"));
       else if (fail > 0) setErr(t("scan.correctFailSome", { n: fail }));
     } catch (e) { setErr(e.message || t("scan.correctFail")); }

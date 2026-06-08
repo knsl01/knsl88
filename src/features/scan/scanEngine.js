@@ -9,7 +9,8 @@ import {
 
 const CDN = {
   JSPDF: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-  OPENCV: "https://docs.opencv.org/4.7.0/opencv.js",
+  // jsDelivr mirror — lebih stabil di production daripada docs.opencv.org
+  OPENCV: "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.1/dist/opencv.js",
   JSCANIFY: "https://cdn.jsdelivr.net/gh/ColonelParrot/jscanify@master/src/jscanify.min.js",
   PDFJS: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
   PDFJS_WORKER: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",
@@ -197,38 +198,224 @@ export async function extractPdfText(file, onProgress) {
   return { text: text.trim(), pages: pdf.numPages, likelyScanned: chars < pdf.numPages * 40 };
 }
 
+let openCvReady = null;
+
+/** Wait until OpenCV WASM runtime is fully initialized. */
+function waitForOpenCvRuntime() {
+  if (typeof window === "undefined") return Promise.reject(new Error("no window"));
+  if (window.cv?.Mat) return Promise.resolve(window.cv);
+
+  return withTimeout(new Promise((resolve, reject) => {
+    const finish = (cv) => {
+      if (cv?.Mat) {
+        window.cv = cv;
+        resolve(cv);
+      } else {
+        reject(new Error("OpenCV gagal init."));
+      }
+    };
+
+    const cv = window.cv;
+    if (!cv) {
+      reject(new Error("OpenCV tidak dimuat."));
+      return;
+    }
+
+    if (cv.Mat) {
+      finish(cv);
+      return;
+    }
+
+    if (typeof cv.then === "function") {
+      cv.then(finish).catch(() => reject(new Error("OpenCV gagal init.")));
+      return;
+    }
+
+    const prev = cv.onRuntimeInitialized;
+    cv.onRuntimeInitialized = () => {
+      if (typeof prev === "function") prev();
+      finish(window.cv);
+    };
+
+    const t0 = Date.now();
+    (function poll() {
+      if (window.cv?.Mat) {
+        finish(window.cv);
+        return;
+      }
+      if (Date.now() - t0 > 45000) {
+        reject(new Error("OpenCV tidak siap (jaringan?)."));
+        return;
+      }
+      setTimeout(poll, 150);
+    })();
+  }), 48000, "OpenCV terlalu lama dimuat.");
+}
+
 async function loadOpenCv() {
-  if (window.cv && window.cv.Mat && window.jscanify) return;
-  if (!window.cv || !window.cv.Mat) {
-    await loadScript(CDN.OPENCV);
-    await withTimeout(new Promise((resolve, reject) => {
-      const t0 = Date.now();
-      (function chk() {
-        const cv = window.cv;
-        if (cv && cv.Mat) return resolve();
-        if (cv && typeof cv.then === "function") {
-          cv.then(() => resolve()).catch(() => reject(new Error("OpenCV gagal init.")));
-          return;
-        }
-        if (Date.now() - t0 > 40000) return reject(new Error("OpenCV tidak siap."));
-        setTimeout(chk, 200);
-      })();
-    }), 42000, "OpenCV terlalu lama dimuat.");
+  if (openCvReady) return openCvReady;
+
+  openCvReady = (async () => {
+    if (!window.cv?.Mat) {
+      await loadScript(CDN.OPENCV);
+      await waitForOpenCvRuntime();
+    }
+    if (!window.jscanify) {
+      await loadScript(CDN.JSCANIFY);
+    }
+    const Scanner = window.jscanify;
+    if (!Scanner) throw new Error("jscanify gagal dimuat.");
+    return { cv: window.cv, Scanner };
+  })();
+
+  try {
+    return await openCvReady;
+  } catch (e) {
+    openCvReady = null;
+    throw e;
   }
-  if (!window.jscanify) await loadScript(CDN.JSCANIFY);
-  if (!window.jscanify) throw new Error("jscanify gagal dimuat.");
+}
+
+/** Draw image to canvas — cv.imread works more reliably with canvas than off-DOM img. */
+function imageToCanvas(img) {
+  const w = img.naturalWidth || img.width || 1;
+  const h = img.naturalHeight || img.height || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#1a1a1a";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas;
+}
+
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/** Fallback corner detection when jscanify contour fails (looser Canny). */
+function findCornersFallback(cv, srcMat) {
+  const gray = new cv.Mat();
+  const blurred = new cv.Mat();
+  const edges = new cv.Mat();
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+  try {
+    cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.Canny(blurred, edges, 25, 120);
+    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+    cv.dilate(edges, edges, kernel);
+    kernel.delete();
+    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    let best = null;
+    let bestArea = 0;
+    const imgArea = srcMat.rows * srcMat.cols;
+    for (let i = 0; i < contours.size(); i++) {
+      const c = contours.get(i);
+      const peri = cv.arcLength(c, true);
+      const approx = new cv.Mat();
+      cv.approxPolyDP(c, approx, 0.02 * peri, true);
+      const area = cv.contourArea(approx);
+      if (approx.rows === 4 && area > bestArea && area > imgArea * 0.12) {
+        bestArea = area;
+        best = approx;
+      } else {
+        approx.delete();
+      }
+    }
+
+    if (!best) return null;
+
+    const center = cv.minAreaRect(best).center;
+    let tl = null;
+    let tr = null;
+    let bl = null;
+    let br = null;
+    let sTL = 0;
+    let sTR = 0;
+    let sBL = 0;
+    let sBR = 0;
+    for (let i = 0; i < best.data32S.length; i += 2) {
+      const pt = { x: best.data32S[i], y: best.data32S[i + 1] };
+      const d = dist(pt, center);
+      if (pt.x < center.x && pt.y < center.y && d > sTL) { tl = pt; sTL = d; }
+      else if (pt.x > center.x && pt.y < center.y && d > sTR) { tr = pt; sTR = d; }
+      else if (pt.x < center.x && pt.y > center.y && d > sBL) { bl = pt; sBL = d; }
+      else if (pt.x > center.x && pt.y > center.y && d > sBR) { br = pt; sBR = d; }
+    }
+    best.delete();
+    if (!tl || !tr || !bl || !br) return null;
+    return { topLeftCorner: tl, topRightCorner: tr, bottomLeftCorner: bl, bottomRightCorner: br };
+  } finally {
+    gray.delete();
+    blurred.delete();
+    edges.delete();
+    contours.delete();
+    hierarchy.delete();
+  }
+}
+
+function warpWithCorners(cv, srcMat, corners, outW, outH) {
+  const dst = document.createElement("canvas");
+  const dstMat = new cv.Mat();
+  const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    corners.topLeftCorner.x, corners.topLeftCorner.y,
+    corners.topRightCorner.x, corners.topRightCorner.y,
+    corners.bottomLeftCorner.x, corners.bottomLeftCorner.y,
+    corners.bottomRightCorner.x, corners.bottomRightCorner.y,
+  ]);
+  const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    0, 0, outW, 0, 0, outH, outW, outH,
+  ]);
+  const M = cv.getPerspectiveTransform(srcTri, dstTri);
+  cv.warpPerspective(srcMat, dstMat, M, new cv.Size(outW, outH), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+  cv.imshow(dst, dstMat);
+  srcTri.delete();
+  dstTri.delete();
+  M.delete();
+  dstMat.delete();
+  return dst;
+}
+
+function extractPaperRobust(Scanner, sourceEl, outW, outH) {
+  const scanner = new Scanner();
+  let result = scanner.extractPaper(sourceEl, outW, outH);
+  if (result?.toDataURL) return result;
+
+  const cv = window.cv;
+  const srcMat = cv.imread(sourceEl);
+  try {
+    const corners = findCornersFallback(cv, srcMat);
+    if (!corners) return null;
+    return warpWithCorners(cv, srcMat, corners, outW, outH);
+  } finally {
+    srcMat.delete();
+  }
 }
 
 export async function correctPage(page) {
   await loadOpenCv();
-  const img = await loadImage(page.dataUrl);
-  const scanner = new window.jscanify();
-  const portrait = (img.naturalHeight || page.h || 1) >= (img.naturalWidth || page.w || 1);
+  const Scanner = window.jscanify;
+  // Always prefer original capture for corner detection (enhance can break contours)
+  const srcUrl = page.orig || page.dataUrl;
+  const img = await loadImage(srcUrl);
+  const canvas = imageToCanvas(img);
+  const portrait = canvas.height >= canvas.width;
   const W = portrait ? 1240 : 1754;
   const H = portrait ? 1754 : 1240;
-  const canvas = scanner.extractPaper(img, W, H);
-  if (!canvas?.toDataURL) throw new Error("Dokumen tidak terdeteksi.");
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+
+  let result = extractPaperRobust(Scanner, canvas, W, H);
+  if (!result?.toDataURL) {
+    result = extractPaperRobust(Scanner, img, W, H);
+  }
+  if (!result?.toDataURL) {
+    throw new Error("Dokumen tidak terdeteksi — pastikan seluruh tepi kertas terlihat dengan latar kontras.");
+  }
+
+  const dataUrl = result.toDataURL("image/jpeg", 0.92);
   const quality = await assessPageQuality(dataUrl);
   return { dataUrl, w: W, h: H, quality };
 }
@@ -336,14 +523,24 @@ export function exportWord(text, name) {
 }
 
 /**
- * Smart pipeline: enhance → deskew → OCR.
+ * Smart pipeline: deskew → enhance (for OCR) → OCR.
+ * Deskew must run on original color image before grayscale enhance.
  * @returns {{ text: string, pages: object[] }}
  */
 export async function runSmartPipeline(pages, { mode, onStage, onProgress }) {
   const stage = (label, pct) => { if (onStage) onStage(label, pct); };
   let working = [...pages];
 
-  stage("enhance", 5);
+  stage("correct", 5);
+  for (let i = 0; i < working.length; i++) {
+    try {
+      const r = await correctPage(working[i]);
+      working[i] = { ...working[i], dataUrl: r.dataUrl, w: r.w, h: r.h, corrected: true, quality: r.quality };
+    } catch { /* keep original */ }
+    if (onProgress) onProgress(Math.round(((i + 1) / working.length) * 30));
+  }
+
+  stage("enhance", 35);
   for (let i = 0; i < working.length; i++) {
     try {
       const r = await enhancePage(working[i].dataUrl);
@@ -355,19 +552,8 @@ export async function runSmartPipeline(pages, { mode, onStage, onProgress }) {
         enhanced: true,
         quality: await assessPageQuality(r.dataUrl),
       };
-    } catch { /* keep original */ }
-    if (onProgress) onProgress(Math.round(((i + 1) / working.length) * 20));
-  }
-
-  stage("correct", 25);
-  let corrected = 0;
-  for (let i = 0; i < working.length; i++) {
-    try {
-      const r = await correctPage(working[i]);
-      working[i] = { ...working[i], dataUrl: r.dataUrl, w: r.w, h: r.h, corrected: true, quality: r.quality };
-      corrected++;
     } catch { /* keep */ }
-    if (onProgress) onProgress(25 + Math.round(((i + 1) / working.length) * 25));
+    if (onProgress) onProgress(35 + Math.round(((i + 1) / working.length) * 20));
   }
 
   stage("ocr", 55);

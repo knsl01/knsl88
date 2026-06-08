@@ -6,6 +6,7 @@ export function loadScript(src) {
     const ex = document.querySelector(`script[data-knsl-scan="${src}"]`);
     if (ex) {
       if (ex.dataset.loaded) return resolve();
+      if (ex.dataset.failed) return reject(new Error("Tidak dapat memuat dari jaringan: " + src));
       ex.addEventListener("load", () => resolve());
       ex.addEventListener("error", () => reject(new Error("load failed")));
       return;
@@ -15,7 +16,7 @@ export function loadScript(src) {
     s.async = true;
     s.dataset.knslScan = src;
     s.onload = () => { s.dataset.loaded = "1"; resolve(); };
-    s.onerror = () => reject(new Error("Tidak dapat memuat dari jaringan: " + src));
+    s.onerror = () => { s.dataset.failed = "1"; reject(new Error("Tidak dapat memuat dari jaringan: " + src)); };
     document.head.appendChild(s);
   });
 }
