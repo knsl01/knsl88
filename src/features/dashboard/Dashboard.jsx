@@ -10,6 +10,7 @@ import {
   loadDashboard, saveDashboard, computeMetricsFromDocket,
   newDeadline, newDocketRow, TREND_DEFAULT,
 } from "../../services/dashboardStore.js";
+import DashboardWelcome from "./DashboardWelcome.jsx";
 
 const ICONS = [Briefcase, TrendingUp, Clock, Users];
 
@@ -56,7 +57,7 @@ function Metric({ icon: Icon, label, value, suffix, delta, i, editing, onChange 
   );
 }
 
-export default function Dashboard({ editing }) {
+export default function Dashboard({ editing, userName, onOpenChat, onOpenAnalysis }) {
   const [metrics, setMetrics] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
   const [docket, setDocket] = useState([]);
@@ -133,6 +134,14 @@ export default function Dashboard({ editing }) {
         <div className="profile-toast profile-toast-success" style={{ marginBottom: 14 }} role="status">
           <CheckCircle2 size={18} /> {toast}
         </div>
+      )}
+
+      {!editing && (
+        <DashboardWelcome
+          userName={userName}
+          onOpenChat={onOpenChat}
+          onOpenAnalysis={onOpenAnalysis}
+        />
       )}
 
       {editing && (

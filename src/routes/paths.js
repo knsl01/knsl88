@@ -32,6 +32,7 @@ const APP_SECTIONS = new Set([
   "scan",
   "conflict",
   "profile",
+  "chat",
 ]);
 
 /** Map sidebar / feature id → URL */
@@ -44,6 +45,7 @@ export const ACTIVE_TO_ROUTE = {
   contract: `${ROUTES.APP}/contract`,
   scan: `${ROUTES.APP}/scan`,
   conflict: `${ROUTES.APP}/conflict`,
+  chat: `${ROUTES.APP}/chat`,
 };
 
 /** Map current URL → active feature id in the workspace shell */

@@ -5,7 +5,7 @@ import {
   Search, Bell, Menu, X, ChevronRight, Gavel, Clock,
   TrendingUp, AlertTriangle, CheckCircle2, Sparkles, FileText,
   Activity, Settings, Zap, Info,
-  FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History, LogOut, User,
+  FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History, LogOut, User, MessageCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -21,6 +21,7 @@ import { isSupabaseConfigured } from "./lib/supabase.js";
 import { saveCaseAnalysisCloud, saveContractReviewCloud } from "./services/supabaseData.js";
 import ProfilePanel from "./components/profile/ProfilePanel.jsx";
 import Dashboard from "./features/dashboard/Dashboard.jsx";
+import LegalChat from "./features/chat/LegalChat.jsx";
 import { useLocalUser } from "./hooks/useLocalUser.js";
 import { storeUser, clearStoredUser } from "./lib/localAuth.js";
 import { ACTIVE_TO_ROUTE, ROUTES, routeToActive } from "./routes/paths.js";
@@ -770,6 +771,7 @@ export function LoginScreen({ onLogin }) {
 function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
   const items = [
     { id: "dashboard", label: "Executive Overview", icon: LayoutDashboard },
+    { id: "chat", label: "Chat Hukum AI", icon: MessageCircle },
     { id: "analysis", label: "Legal Analysis Engine", icon: Scale },
     { id: "drafting", label: "Smart Drafting", icon: FileSignature },
     { id: "research", label: "Legal Research", icon: BookOpen },
@@ -3166,6 +3168,7 @@ function ScanDoc({ onSend }) {
 function MobileTabBar({ active, onNavigate }) {
   const items = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
+    { id: "chat", label: "Chat", icon: MessageCircle },
     { id: "analysis", label: "Analisa", icon: Scale },
     { id: "drafting", label: "Drafting", icon: FileSignature },
     { id: "contract", label: "Kontrak", icon: FileSearch },
@@ -3224,6 +3227,7 @@ export default function App() {
 
   const meta = {
     dashboard: ["Executive Overview", "Dasbor · " + getHariTanggal()],
+    chat: ["Chat Hukum AI", "Konsultasi riset hukum Indonesia"],
     analysis: ["Legal Analysis Engine", "Analisa Kasus & Ekstraksi Pasal"],
     drafting: ["Smart Drafting Studio", "Drafting & Contract Redlining"],
     research: ["Legal Research", "Riset Pasal & Basis UU"],
@@ -3265,7 +3269,15 @@ export default function App() {
             ) : null}
           />
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-            {active === "dashboard" && <Dashboard editing={dashEditing} />}
+            {active === "dashboard" && (
+              <Dashboard
+                editing={dashEditing}
+                userName={user?.name || user?.username}
+                onOpenChat={() => goTo("chat")}
+                onOpenAnalysis={() => goTo("analysis")}
+              />
+            )}
+            {active === "chat" && <LegalChat />}
             {active === "analysis" && <Analysis seed={seed} />}
             {active === "drafting" && <Drafting />}
             {active === "research" && <Research seed={seed} />}

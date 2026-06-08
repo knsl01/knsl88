@@ -25,7 +25,7 @@
 | `/login`, `/signup`, `/forgot-password` | Guest only | Auth pages |
 | `/reset-password` | Recovery flow | New password after email link |
 | `/dashboard`, `/workspace`, `/settings`, `/app` | Protected | Workspace shell (URL-synced) |
-| `/app/:section` | Protected | Drafting, contract, scan, etc. |
+| `/app/:section` | Protected | Drafting, contract, scan, `chat`, etc. |
 
 Unauthenticated users hitting protected paths → `/login` (with `state.from` for return URL). Logged-in users hitting guest paths → `/app`.
 
