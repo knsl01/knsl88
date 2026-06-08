@@ -124,7 +124,10 @@ export function AuthProvider({ children }) {
     if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
     const { error } = await supabase.auth.signInWithOtp({
       phone: phoneE164,
-      options: { channel: "sms" },
+      options: {
+        channel: "sms",
+        shouldCreateUser: true,
+      },
     });
     if (error) throw error;
   };

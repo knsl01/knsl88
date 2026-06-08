@@ -109,6 +109,8 @@ export default {
     phoneLabel: "Nomor WhatsApp / HP",
     phonePlaceholder: "0812xxxxxxx",
     phoneHint: "Kami kirim kode OTP via SMS. Pastikan nomor aktif.",
+    phoneWillSendTo: "OTP akan dikirim ke:",
+    phoneTwilioTrial: "Twilio trial: nomor harus didaftarkan dulu di Twilio → Verified Caller IDs (+62…). Indonesia harus aktif di Geo permissions.",
     phoneSendOtp: "Kirim kode OTP",
     phoneOtpLabel: "Kode OTP (SMS)",
     phoneOtpSent: "Kode dikirim ke",
