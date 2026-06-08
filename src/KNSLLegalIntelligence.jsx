@@ -20,6 +20,7 @@ import { useAuth } from "./contexts/AuthContext.jsx";
 import { isSupabaseConfigured } from "./lib/supabase.js";
 import { saveCaseAnalysisCloud, saveContractReviewCloud } from "./services/supabaseData.js";
 import ProfilePanel from "./components/profile/ProfilePanel.jsx";
+import UserAvatar from "./components/profile/UserAvatar.jsx";
 import Dashboard from "./features/dashboard/Dashboard.jsx";
 import LegalChat from "./features/chat/LegalChat.jsx";
 import { useLocalUser } from "./hooks/useLocalUser.js";
@@ -815,9 +816,7 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
             <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>{PASAL.length} pasal terindeks dari KUHP, UU PT & UUD 1945.</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "14px 6px 4px" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,rgba(19,133,92,0.25),#101413)", border: "1px solid var(--line)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600 }} className="gold-text">
-              {user ? user.name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() : "?"}
-            </div>
+            <UserAvatar user={user} size={36} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user ? user.name : "—"}</div>
               <div style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@{user ? user.username : ""}</div>

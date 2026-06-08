@@ -273,8 +273,10 @@ export const STYLES = `
 .legal-chat-footnote-desktop{display:block;}
 .legal-chat-row{display:flex;align-items:flex-start;gap:10px;max-width:100%;}
 .legal-chat-row-user{flex-direction:row-reverse;}
-.legal-chat-avatar{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:rgba(19,133,92,0.12);border:1px solid rgba(31,179,126,0.25);color:var(--emerald-bright);}
-.legal-chat-avatar-user{background:rgba(216,192,138,0.1);border-color:rgba(216,192,138,0.25);color:var(--champagne);}
+.legal-chat-avatar-wrap{flex-shrink:0;}
+.legal-chat-avatar{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:rgba(19,133,92,0.12);border:1px solid rgba(31,179,126,0.25);color:var(--emerald-bright);}
+.legal-chat-avatar-bot{background:rgba(19,133,92,0.12);}
+.profile-avatar-block{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid rgba(216,192,138,0.1);}
 .legal-chat-bubble{max-width:min(88%,720px);padding:14px 16px;border-radius:14px;line-height:1.6;font-size:13.5px;}
 .legal-chat-bubble-user{background:rgba(19,133,92,0.1)!important;border-color:rgba(31,179,126,0.28)!important;}
 .legal-chat-text{color:var(--silver);word-break:break-word;}
@@ -296,20 +298,24 @@ export const STYLES = `
   .legal-chat-header{margin:0 8px 4px;padding:8px 10px;}
   .legal-chat-toolbar--desktop{display:none!important;}
   .legal-chat-toolbar--mobile{display:flex;flex:1;align-items:center;min-width:0;}
-  .legal-chat-page{padding-bottom:0;}
-  .legal-chat-messages{padding-bottom:8px;}
+  .legal-chat-page{
+    padding-bottom:calc(56px + env(safe-area-inset-bottom,0px));
+  }
+  .legal-chat-messages{
+    padding-bottom:12px;
+    overscroll-behavior:contain;
+  }
   .legal-chat-composer{
     margin:0;
     padding:10px 12px 12px;
-    position:sticky;
-    bottom:calc(58px + env(safe-area-inset-bottom,0px));
-    z-index:35;
-    background:rgba(8,10,9,0.97);
+    position:relative;
+    z-index:5;
+    background:rgba(8,10,9,0.98);
     backdrop-filter:blur(14px);
     -webkit-backdrop-filter:blur(14px);
     border-top:1px solid rgba(255,255,255,0.08);
     border-radius:0!important;
-    box-shadow:0 -8px 24px rgba(0,0,0,0.35);
+    box-shadow:0 -4px 16px rgba(0,0,0,0.25);
   }
   .legal-chat-footnote-desktop{display:none;}
   .legal-chat-footnote-inline{display:block;font-size:10px;color:var(--muted-2);margin:0 0 6px;text-align:left;width:100%;}

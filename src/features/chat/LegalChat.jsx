@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Bot, User, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, Bot, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { askLegalChat, SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
 import { loadChatMessages, saveChatMessages, clearChatMessages } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
+import { useAuth } from "../../contexts/AuthContext.jsx";
+import { useLocalUser } from "../../hooks/useLocalUser.js";
+import { isSupabaseConfigured } from "../../lib/supabase.js";
+import UserAvatar from "../../components/profile/UserAvatar.jsx";
 
 function msgId() {
   return "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
@@ -16,13 +20,18 @@ function formatContent(text) {
     .replace(/\n/g, "<br/>");
 }
 
-function ChatBubble({ message }) {
+function ChatBubble({ message, user }) {
   const isUser = message.role === "user";
-  const Icon = isUser ? User : Bot;
   return (
     <div className={`legal-chat-row ${isUser ? "legal-chat-row-user" : ""}`}>
-      <div className={`legal-chat-avatar ${isUser ? "legal-chat-avatar-user" : ""}`}>
-        <Icon size={16} strokeWidth={1.8} />
+      <div className={`legal-chat-avatar-wrap ${isUser ? "legal-chat-avatar-user" : ""}`}>
+        {isUser ? (
+          <UserAvatar user={user} size={32} />
+        ) : (
+          <div className="legal-chat-avatar legal-chat-avatar-bot">
+            <Bot size={16} strokeWidth={1.8} />
+          </div>
+        )}
       </div>
       <div className={`legal-chat-bubble glass ${isUser ? "legal-chat-bubble-user" : ""}`}>
         <div
@@ -35,6 +44,10 @@ function ChatBubble({ message }) {
 }
 
 export default function LegalChat() {
+  const { user: supaUser } = useAuth();
+  const localUser = useLocalUser();
+  const user = isSupabaseConfigured ? supaUser : localUser;
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,8 +55,10 @@ export default function LegalChat() {
   const [error, setError] = useState("");
   const [aiNote, setAiNote] = useState("");
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const bottomRef = useRef(null);
+  const messagesRef = useRef(null);
+  const stickToBottomRef = useRef(true);
   const inputRef = useRef(null);
+  const prevLenRef = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -51,14 +66,40 @@ export default function LegalChat() {
       if (alive) {
         setMessages(msgs);
         setReady(true);
+        stickToBottomRef.current = true;
       }
     });
     return () => { alive = false; };
   }, []);
 
+  const scrollToBottom = useCallback((behavior = "auto") => {
+    const el = messagesRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    if (!ready) return;
+    const el = messagesRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+      stickToBottomRef.current = gap < 100;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const grew = messages.length > prevLenRef.current;
+    prevLenRef.current = messages.length;
+
+    if (stickToBottomRef.current || grew) {
+      requestAnimationFrame(() => scrollToBottom(grew ? "smooth" : "auto"));
+    }
+  }, [messages, loading, ready, scrollToBottom]);
 
   const persist = useCallback(async (msgs) => {
     await saveChatMessages(msgs);
@@ -70,6 +111,7 @@ export default function LegalChat() {
     setError("");
     setAiNote("");
     setInput("");
+    stickToBottomRef.current = true;
 
     const userMsg = { id: msgId(), role: "user", content: q, createdAt: Date.now() };
     const next = [...messages, userMsg];
@@ -115,6 +157,7 @@ export default function LegalChat() {
     setMessages(fresh);
     setError("");
     setAiNote("");
+    stickToBottomRef.current = true;
   };
 
   if (!ready) {
@@ -168,7 +211,7 @@ export default function LegalChat() {
         </div>
       )}
 
-      <div className="legal-chat-messages scrollbar">
+      <div ref={messagesRef} className="legal-chat-messages scrollbar">
         {!loading && messages.length <= 1 && (
           <div className="legal-chat-suggestions legal-chat-suggestions-inline">
             <span className="legal-chat-suggestions-label">Contoh pertanyaan</span>
@@ -182,17 +225,20 @@ export default function LegalChat() {
           </div>
         )}
         {messages.map((m) => (
-          <ChatBubble key={m.id} message={m} />
+          <ChatBubble key={m.id} message={m} user={user} />
         ))}
         {loading && (
           <div className="legal-chat-row">
-            <div className="legal-chat-avatar"><Bot size={16} /></div>
+            <div className="legal-chat-avatar-wrap">
+              <div className="legal-chat-avatar legal-chat-avatar-bot">
+                <Bot size={16} />
+              </div>
+            </div>
             <div className="legal-chat-bubble glass legal-chat-typing">
               <Loader2 size={16} className="legal-chat-spin" /> Menyusun jawaban hukum…
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       <form

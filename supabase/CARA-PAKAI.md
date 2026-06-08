@@ -47,6 +47,22 @@
 
 Selesai. Buka situs → daftar/masuk → data per akun terisolasi (RLS).
 
+---
+
+## Data login — apa yang bisa Anda lihat?
+
+| Data | Bisa? | Di mana |
+|------|-------|---------|
+| Email, nama, waktu daftar | ✅ | Supabase → **Authentication** → **Users** |
+| Terakhir login | ✅ | Kolom *Last sign in* di Users |
+| Jenis HP / merek | ❌ | Tidak otomatis |
+| Lokasi GPS | ❌ | Tidak otomatis |
+| IP / kota | ⚠️ | Supabase **Logs** (terbatas, plan berbayar) atau analytics server |
+
+Aplikasi **tidak** menyimpan merek HP atau lokasi user secara default — itu normal untuk privasi (UU PDP).
+
+Kalau perlu log device (user agent) saat login, bisa ditambahkan nanti ke tabel `audit_log` — beri tahu jika mau.
+
 **Lokal:** buat file `.env` di root project:
 
 ```env
