@@ -350,6 +350,100 @@ export const AUTH_STYLES = `
   margin: 24px 0;
 }
 
+.auth-divider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 18px;
+}
+.auth-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--auth-border), transparent);
+}
+.auth-divider-text {
+  font-size: 11.5px;
+  color: var(--auth-muted-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.auth-social-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--auth-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.auth-social-btn:hover:not(:disabled) {
+  border-color: rgba(212, 189, 138, 0.35);
+  background: rgba(255, 255, 255, 0.07);
+}
+.auth-social-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.auth-social-google svg {
+  flex-shrink: 0;
+}
+
+.auth-method-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.auth-method-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--auth-border);
+  background: transparent;
+  color: var(--auth-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.auth-method-tab.active {
+  border-color: rgba(31, 179, 126, 0.45);
+  background: rgba(31, 179, 126, 0.1);
+  color: var(--auth-emerald-bright);
+}
+.auth-method-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-phone-hint {
+  font-size: 12.5px;
+  color: var(--auth-muted);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.auth-phone-signup-hint {
+  font-size: 12.5px;
+  color: var(--auth-muted);
+  line-height: 1.5;
+  margin: 0 0 18px;
+  text-align: center;
+}
+
 .auth-footer-note {
   text-align: center;
   font-size: 11px;

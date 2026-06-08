@@ -43,9 +43,30 @@
 - **Site URL:** `https://knsl.tech` (atau domain Anda)
 - **Redirect URLs:** tambahkan `https://knsl.tech/**` dan `http://localhost:5173/**`
 
+## 6. Login Google (Gmail)
+
+1. **Authentication** → **Providers** → **Google** → aktifkan
+2. Buat OAuth Client di [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Tipe: **Web application**
+   - **Authorized redirect URI:** salin dari Supabase (biasanya `https://<project-ref>.supabase.co/auth/v1/callback`)
+3. Paste **Client ID** dan **Client Secret** ke Supabase → Save
+
+Di aplikasi, tombol **Masuk dengan Google** akan redirect ke Google lalu kembali ke `/login`.
+
+## 7. Login nomor telepon (OTP SMS)
+
+1. **Authentication** → **Providers** → **Phone** → aktifkan
+2. Hubungkan penyedia SMS (wajib untuk production):
+   - **Twilio** atau **MessageBird** di Supabase → Phone settings
+3. Untuk uji cepat, Supabase bisa pakai **test OTP** (dashboard) — hanya development
+
+Di aplikasi: tab **Nomor HP** → masukkan `0812…` → terima SMS → masukkan kode OTP.
+
+> Jalankan ulang `supabase/JALANKAN-SEMUA.sql` (atau migrasi `20240609120000_oauth_phone_profiles.sql`) agar profil user Google/HP tersimpan benar.
+
 ---
 
-Selesai. Buka situs → daftar/masuk → data per akun terisolasi (RLS).
+Selesai. Buka situs → daftar/masuk (email, Google, atau HP) → data per akun terisolasi (RLS).
 
 ---
 

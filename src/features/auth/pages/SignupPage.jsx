@@ -7,6 +7,7 @@ import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
 import AuthButton from "../components/AuthButton.jsx";
 import AuthAlert from "../components/AuthAlert.jsx";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 import PasswordStrength from "../components/PasswordStrength.jsx";
 import {
   validateEmail,
@@ -19,7 +20,7 @@ import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
 export default function SignupPage() {
   const { t } = useI18n();
-  const { signUp } = useAuth();
+  const { signUp, isSupabase } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -71,6 +72,22 @@ export default function SignupPage() {
     >
       <AuthAlert variant="error">{error}</AuthAlert>
       <AuthAlert variant="success">{success}</AuthAlert>
+
+      {isSupabase && (
+        <>
+          <GoogleAuthButton
+            label={t("auth.googleSignup")}
+            disabled={loading}
+            onError={setError}
+          />
+          <div className="auth-divider-row">
+            <span className="auth-divider-line" />
+            <span className="auth-divider-text">{t("auth.orContinue")}</span>
+            <span className="auth-divider-line" />
+          </div>
+          <p className="auth-phone-signup-hint">{t("auth.phoneSignupHint")}</p>
+        </>
+      )}
 
       <form onSubmit={submit} noValidate>
         <AuthField

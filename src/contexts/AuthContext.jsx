@@ -12,8 +12,8 @@ function mapProfileToUser(profile, sessionUser) {
     username: profile?.username || sessionUser.user_metadata?.username || sessionUser.email?.split("@")[0] || "user",
     role: profile?.role || "reviewer",
     firmName: profile?.firm_name || "",
-    phone: profile?.phone || "",
-    avatarUrl: profile?.avatar_url || null,
+    phone: profile?.phone || sessionUser.phone || "",
+    avatarUrl: profile?.avatar_url || sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || null,
   };
 }
 
@@ -103,6 +103,44 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const authRedirectTo = () => {
+    if (typeof window === "undefined") return undefined;
+    return `${window.location.origin}/login`;
+  };
+
+  const signInWithGoogle = async () => {
+    if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: authRedirectTo(),
+        queryParams: { access_type: "offline", prompt: "select_account" },
+      },
+    });
+    if (error) throw error;
+  };
+
+  const sendPhoneOtp = async (phoneE164) => {
+    if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: phoneE164,
+      options: { channel: "sms" },
+    });
+    if (error) throw error;
+  };
+
+  const verifyPhoneOtp = async (phoneE164, token) => {
+    if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: phoneE164,
+      token: String(token).trim(),
+      type: "sms",
+    });
+    if (error) throw error;
+    if (data?.user) await loadProfile(data.user.id);
+    return data;
+  };
+
   const signOut = async () => {
     if (!supabase) return;
     setRecoveryMode(false);
@@ -159,6 +197,9 @@ export function AuthProvider({ children }) {
     user,
     signUp,
     signIn,
+    signInWithGoogle,
+    sendPhoneOtp,
+    verifyPhoneOtp,
     signOut,
     resetPassword,
     updatePassword,

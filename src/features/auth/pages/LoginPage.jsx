@@ -7,15 +7,19 @@ import AuthLayout from "../components/AuthLayout.jsx";
 import AuthField from "../components/AuthField.jsx";
 import AuthButton from "../components/AuthButton.jsx";
 import AuthAlert from "../components/AuthAlert.jsx";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
+import PhoneLoginForm from "../components/PhoneLoginForm.jsx";
+import AuthMethodTabs from "../components/AuthMethodTabs.jsx";
 import { validateEmail, validatePassword } from "../utils/validation.js";
 import { formatAuthError } from "../utils/errors.js";
 import { DEFAULT_AUTHENTICATED_ROUTE, ROUTES } from "../../../routes/paths.js";
 
 export default function LoginPage() {
   const { t } = useI18n();
-  const { signIn } = useAuth();
+  const { signIn, isSupabase } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [method, setMethod] = useState("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -53,40 +57,60 @@ export default function LoginPage() {
     >
       <AuthAlert variant="error">{error}</AuthAlert>
 
-      <form onSubmit={submit} noValidate>
-        <AuthField
-          label={t("auth.email")}
-          name="email"
-          type="email"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: null })); }}
-          error={fieldErrors.email}
-          placeholder={t("auth.emailPlaceholder")}
-          autoComplete="email"
-          icon={Mail}
-          disabled={loading}
-        />
-        <AuthField
-          label={t("auth.password")}
-          name="password"
-          type="password"
-          value={password}
-          onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: null })); }}
-          error={fieldErrors.password}
-          placeholder={t("auth.passwordPlaceholder")}
-          autoComplete="current-password"
-          disabled={loading}
-        />
+      {isSupabase && (
+        <>
+          <GoogleAuthButton
+            label={t("auth.googleLogin")}
+            disabled={loading}
+            onError={setError}
+          />
+          <div className="auth-divider-row">
+            <span className="auth-divider-line" />
+            <span className="auth-divider-text">{t("auth.orContinue")}</span>
+            <span className="auth-divider-line" />
+          </div>
+          <AuthMethodTabs method={method} onChange={setMethod} disabled={loading} />
+        </>
+      )}
 
-        <div className="auth-row-between">
-          <span />
-          <button type="button" className="auth-link" onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}>
-            {t("auth.forgotLink")}
-          </button>
-        </div>
+      {method === "phone" && isSupabase ? (
+        <PhoneLoginForm onError={setError} disabled={loading} />
+      ) : (
+        <form onSubmit={submit} noValidate>
+          <AuthField
+            label={t("auth.email")}
+            name="email"
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: null })); }}
+            error={fieldErrors.email}
+            placeholder={t("auth.emailPlaceholder")}
+            autoComplete="email"
+            icon={Mail}
+            disabled={loading}
+          />
+          <AuthField
+            label={t("auth.password")}
+            name="password"
+            type="password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: null })); }}
+            error={fieldErrors.password}
+            placeholder={t("auth.passwordPlaceholder")}
+            autoComplete="current-password"
+            disabled={loading}
+          />
 
-        <AuthButton loading={loading}>{t("auth.loginBtn")}</AuthButton>
-      </form>
+          <div className="auth-row-between">
+            <span />
+            <button type="button" className="auth-link" onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}>
+              {t("auth.forgotLink")}
+            </button>
+          </div>
+
+          <AuthButton loading={loading}>{t("auth.loginBtn")}</AuthButton>
+        </form>
+      )}
 
       <div className="auth-divider" />
 
