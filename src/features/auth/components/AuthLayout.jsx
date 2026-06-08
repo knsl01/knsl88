@@ -2,6 +2,7 @@ import React from "react";
 import { Shield, Lock, Cloud } from "lucide-react";
 import { LogoMark } from "../../../theme.jsx";
 import { AUTH_STYLES } from "../styles/authStyles.js";
+import AuthMobileMarquee from "./AuthMobileMarquee.jsx";
 
 const TRUST = [
   { icon: Shield, text: "Enkripsi sesi & data terisolasi per akun" },
@@ -9,10 +10,15 @@ const TRUST = [
   { icon: Cloud, text: "Sinkronisasi analisa & kontrak di cloud" },
 ];
 
-export default function AuthLayout({ children, title, subtitle }) {
+export default function AuthLayout({ children, title, subtitle, showMobileMarquee = false }) {
   return (
     <div className="auth-root">
       <style>{AUTH_STYLES}</style>
+      <div className="auth-mobile-ambient" aria-hidden="true">
+        <div className="auth-orb auth-orb-emerald" />
+        <div className="auth-orb auth-orb-gold" />
+      </div>
+      {showMobileMarquee && <AuthMobileMarquee />}
       <div className="auth-shell">
         <aside className="auth-brand" aria-hidden="false">
           <div className="auth-brand-glow" />

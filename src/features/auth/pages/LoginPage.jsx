@@ -41,6 +41,7 @@ export default function LoginPage({ onNavigate }) {
     <AuthLayout
       title="Masuk ke workspace"
       subtitle="Akses analisa hukum, drafting, dan review kontrak Anda."
+      showMobileMarquee
     >
       <AuthAlert variant="error">{error}</AuthAlert>
 
