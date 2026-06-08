@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Bot, User, Sparkles, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { Send, Bot, User, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { askLegalChat, SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
 import { loadChatMessages, saveChatMessages, clearChatMessages } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
@@ -41,6 +41,7 @@ export default function LegalChat() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [aiNote, setAiNote] = useState("");
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -96,7 +97,7 @@ export default function LegalChat() {
       const errAssistant = {
         id: msgId(),
         role: "assistant",
-        content: `Maaf, saya tidak dapat menjawab saat ini.\n\n**Error:** ${errMsg}\n\nCoba ganti provider AI di atas atau periksa API key di pengaturan deploy.`,
+        content: `Maaf, saya tidak dapat menjawab saat ini.\n\n**Error:** ${errMsg}\n\nCoba ganti provider AI atau periksa API key di pengaturan deploy.`,
         createdAt: Date.now(),
       };
       const updated = [...next, errAssistant];
@@ -127,21 +128,39 @@ export default function LegalChat() {
   return (
     <div className="view-enter legal-chat-page">
       <div className="legal-chat-header glass">
-        <div>
-          <h3 className="serif" style={{ fontSize: 18, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <Sparkles size={18} className="gold-text" /> Konsultasi Hukum AI
-          </h3>
-          <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0 0", lineHeight: 1.45 }}>
-            Riset & penjelasan hukum Indonesia · bukan pengganti advokat
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <p className="legal-chat-disclaimer legal-chat-intro">
+          Riset hukum Indonesia · bukan pengganti advokat
+        </p>
+
+        <div className="legal-chat-toolbar legal-chat-toolbar--desktop">
           <AiProviderPicker compact />
-          <button type="button" className="btn-ghost" onClick={handleClear} title="Hapus riwayat" style={{ padding: "8px 10px" }}>
+          <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title="Hapus riwayat" aria-label="Hapus riwayat">
+            <Trash2 size={15} />
+          </button>
+        </div>
+
+        <div className="legal-chat-toolbar legal-chat-toolbar--mobile">
+          <AiProviderPicker minimal />
+          <button
+            type="button"
+            className="legal-chat-settings-toggle"
+            onClick={() => setAiPanelOpen((o) => !o)}
+            aria-expanded={aiPanelOpen}
+            aria-label="Detail provider AI"
+          >
+            {aiPanelOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title="Hapus riwayat" aria-label="Hapus riwayat">
             <Trash2 size={15} />
           </button>
         </div>
       </div>
+
+      {aiPanelOpen && (
+        <div className="legal-chat-ai-panel glass">
+          <AiProviderPicker compact />
+        </div>
+      )}
 
       {error && (
         <div className="legal-chat-error" role="alert">
@@ -150,6 +169,18 @@ export default function LegalChat() {
       )}
 
       <div className="legal-chat-messages scrollbar">
+        {!loading && messages.length <= 1 && (
+          <div className="legal-chat-suggestions legal-chat-suggestions-inline">
+            <span className="legal-chat-suggestions-label">Contoh pertanyaan</span>
+            <div className="legal-chat-chips">
+              {SUGGESTED_PROMPTS.map((p) => (
+                <button key={p} type="button" className="legal-chat-chip" onClick={() => send(p)}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {messages.map((m) => (
           <ChatBubble key={m.id} message={m} />
         ))}
@@ -163,21 +194,6 @@ export default function LegalChat() {
         )}
         <div ref={bottomRef} />
       </div>
-
-      {!loading && messages.length <= 1 && (
-        <div className="legal-chat-suggestions">
-          <span style={{ fontSize: 11, color: "var(--muted-2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            Contoh pertanyaan
-          </span>
-          <div className="legal-chat-chips">
-            {SUGGESTED_PROMPTS.map((p) => (
-              <button key={p} type="button" className="legal-chat-chip" onClick={() => send(p)}>
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <form
         className="legal-chat-composer glass"
@@ -195,16 +211,14 @@ export default function LegalChat() {
               send();
             }
           }}
-          placeholder="Tanyakan seputar hukum Indonesia… (Enter kirim, Shift+Enter baris baru)"
+          placeholder="Tanyakan seputar hukum Indonesia…"
           disabled={loading}
         />
         <button type="submit" className="btn-primary legal-chat-send" disabled={loading || !input.trim()}>
           {loading ? <Loader2 size={18} className="legal-chat-spin" /> : <Send size={18} />}
         </button>
       </form>
-      {aiNote && (
-        <p style={{ fontSize: 11, color: "var(--muted-2)", textAlign: "center", margin: "8px 0 0" }}>{aiNote}</p>
-      )}
+      {aiNote && <p className="legal-chat-footnote">{aiNote}</p>}
     </div>
   );
 }

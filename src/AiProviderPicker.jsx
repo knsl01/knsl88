@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel } from "./aiProviders.js";
 
 /** Pemilih provider AI — native select agar tidak tertutup overflow parent. */
-export default function AiProviderPicker({ compact }) {
+export default function AiProviderPicker({ compact, minimal }) {
   const [provider, setProvider] = useState(getAiProvider);
   const [last, setLast] = useState(getLastAiMeta);
 
@@ -34,6 +34,20 @@ export default function AiProviderPicker({ compact }) {
       ))}
     </select>
   );
+
+  if (minimal) {
+    const status = last
+      ? `Terhubung: ${getProviderLabel(last.provider)} · ${last.model}`
+      : cur.hint;
+    return (
+      <div className="ai-provider-minimal">
+        {selectEl}
+        {last && (
+          <span className="ai-provider-minimal-dot" title={status} aria-label={status} />
+        )}
+      </div>
+    );
+  }
 
   if (compact) {
     return (
