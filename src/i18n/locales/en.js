@@ -109,6 +109,8 @@ export default {
     phoneLabel: "Mobile number",
     phonePlaceholder: "0812xxxxxxx",
     phoneHint: "We will send an OTP via SMS. Use an active number.",
+    phoneWillSendTo: "OTP will be sent to:",
+    phoneTwilioTrial: "Twilio trial: add your number in Twilio → Verified Caller IDs (+62…). Enable Indonesia in Geo permissions.",
     phoneSendOtp: "Send OTP code",
     phoneOtpLabel: "OTP code (SMS)",
     phoneOtpSent: "Code sent to",

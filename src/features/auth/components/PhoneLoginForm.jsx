@@ -117,6 +117,13 @@ export default function PhoneLoginForm({ onError, disabled }) {
         disabled={loading || disabled}
       />
       <p className="auth-phone-hint">{t("auth.phoneHint")}</p>
+      {phone.trim() && normalizePhoneId(phone) && (
+        <p className="auth-phone-hint">
+          {t("auth.phoneWillSendTo")}{" "}
+          <strong>{normalizePhoneId(phone)}</strong>
+        </p>
+      )}
+      <p className="auth-phone-trial-hint">{t("auth.phoneTwilioTrial")}</p>
       <AuthButton loading={loading} disabled={disabled}>{t("auth.phoneSendOtp")}</AuthButton>
     </form>
   );

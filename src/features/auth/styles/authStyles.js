@@ -434,7 +434,17 @@ export const AUTH_STYLES = `
   font-size: 12.5px;
   color: var(--auth-muted);
   line-height: 1.5;
+  margin: 0 0 8px;
+}
+.auth-phone-trial-hint {
+  font-size: 11.5px;
+  color: var(--auth-gold-soft);
+  line-height: 1.45;
   margin: 0 0 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.2);
 }
 .auth-phone-signup-hint {
   font-size: 12.5px;

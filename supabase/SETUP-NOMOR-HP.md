@@ -102,15 +102,51 @@ Cek hasil:
 
 ---
 
-## Error umum
+## ERROR TERUS saat kirim SMS? (Twilio Try/Trial)
+
+Ikuti **semua** poin ini — trial Twilio sangat ketat:
+
+### ✅ Checklist wajib (trial)
+
+1. **Nomor yang Anda tes HARUS sama persis** dengan yang diverifikasi di Twilio  
+   - Twilio Console → **Phone Numbers** → **Verified Caller IDs** → **Add**  
+   - Masukkan `+62812xxxxxxx` (format internasional, bukan `0812` saja)  
+   - Selesaikan verifikasi Twilio ke HP Anda  
+
+2. **Aktifkan Indonesia di Geo Permissions**  
+   - Twilio Console → **Messaging** → **Settings** → **Geo permissions**  
+   - Cari **Indonesia** → centang **Allow** → Save  
+   - Tanpa ini, SMS ke +62 sering gagal dengan error 21608  
+
+3. **Provider di Supabase harus cocok dengan Twilio**  
+
+   | Di Supabase (SMS provider) | Yang diisi |
+   |----------------------------|------------|
+   | **Twilio Verify** ← disarankan | Account SID + Auth Token + **Verify Service SID** (`VA…`) |
+   | Twilio (bukan Verify) | Account SID + Auth Token + **Messaging Service SID** (`MG…`) |
+
+   Salah pilih provider = error terus.
+
+4. **Tanpa spasi** saat paste SID/Token di Supabase → **Save**
+
+5. **Tunggu 60 detik** antar percobaan kirim OTP (rate limit)
+
+6. Cek log error asli: Supabase → **Authentication** → **Logs** (atau **Logs** → Auth)
+
+---
+
+### Error umum
 
 | Pesan / gejala | Solusi |
 |----------------|--------|
-| SMS tidak masuk | Trial Twilio: nomor harus diverifikasi dulu di Twilio |
+| SMS tidak masuk | Trial: nomor harus di **Verified Caller IDs** + Geo **Indonesia** ON |
+| Error 21608 / Geo | Aktifkan Indonesia di Twilio Geo permissions |
+| `sms_send_failed` | SID/Token salah atau provider Twilio/Verify tidak cocok |
 | `Unsupported phone provider` | Phone provider belum Save / Twilio belum diisi |
 | `Signups not allowed` | Aktifkan Phone provider & phone signups |
 | Kode expired | OTP ~60 detik; minta **Kirim ulang** |
 | Format nomor salah | Pakai `08…` atau `+62…` |
+| Trial unverified number | Hanya nomor yang sudah diverifikasi di Twilio yang bisa terima SMS |
 
 ---
 
