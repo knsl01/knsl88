@@ -659,6 +659,7 @@ function LoginScreen({ onLogin }) {
       if (h !== acc.hash) { setBusy(false); setError("Password salah. Coba lagi."); return; }
       const user = { id: acc.id, name: acc.name, username: acc.username };
       storeUser(user);
+      setBusy(false);
       onLogin(user);
     } catch (e) { setBusy(false); setError("Terjadi kesalahan: " + e.message); }
   };
