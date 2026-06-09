@@ -37,8 +37,8 @@ function aiDevProxy() {
           return;
         }
         if (req.method === "GET") {
-          const { listAvailableProviders } = await import("./api/aiRouter.mjs");
-          sendJson(res, 200, { providers: listAvailableProviders() });
+          const { getAIStatus } = await import("./api/aiRouter.mjs");
+          sendJson(res, 200, getAIStatus());
           return;
         }
         if (req.method !== "POST") {
