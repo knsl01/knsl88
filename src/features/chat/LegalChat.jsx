@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Bot, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { SUGGESTED_PROMPTS, askLegalChat, buildHeuristicChatReply } from "../../agents/legalChatAgent.js";
+import { SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
+import { dispatchKnslChatAgent } from "../../agents/chatDispatcher.js";
+import { getKnslAgent, getKnslAgentLabel } from "../../knslAiAgents.js";
 import {
   loadChatMessages,
   saveChatMessages,
@@ -9,6 +11,7 @@ import {
   isChatCloudSyncActive,
 } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
+import KnslAgentPicker from "../../KnslAgentPicker.jsx";
 import { getAiProvider } from "../../aiProviders.js";
 import { getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -139,7 +142,9 @@ export default function LegalChat() {
     setLoading(true);
 
     try {
-      const reply = await askLegalChat({
+      const agentId = getKnslAgent();
+      const { text: reply, meta: dispatchMeta } = await dispatchKnslChatAgent({
+        agentId,
         messages: next,
         provider: getAiProvider(),
       });
@@ -148,32 +153,39 @@ export default function LegalChat() {
         role: "assistant",
         content: reply,
         createdAt: Date.now(),
+        agentId,
       };
       const updated = [...next, assistantMsg];
       setMessages(updated);
       await persist(updated);
-      const meta = getLastAiMeta();
       let note = "";
-      if (meta?.provider) {
-        note = t("chat.answeredVia", {
-          provider: getProviderLabel(meta.provider),
-          model: meta.model ? ` · ${meta.model}` : "",
-        });
+      if (dispatchMeta?.heuristic) {
+        note = locale === "en"
+          ? "Answered in offline mode (no AI) — KNSL statute base"
+          : "Dijawab mode hemat (tanpa AI) — basis pasal KNSL";
+      } else {
+        const meta = getLastAiMeta();
+        if (meta?.provider) {
+          note = t("chat.answeredVia", {
+            provider: getProviderLabel(meta.provider),
+            model: meta.model ? ` · ${meta.model}` : "",
+          });
+        }
+        note += t("chat.answeredViaAgent", { agent: getKnslAgentLabel(agentId, locale) });
       }
       if (note) setAiNote(note);
     } catch (e) {
-      const errMsg = e.message || getLastAiError() || t("chat.errorContact");
-      setError("");
+      const errMsg = getLastAiError() || e.message || t("chat.errorContact");
+      setError(errMsg);
       const errAssistant = {
         id: msgId(),
         role: "assistant",
-        content: buildHeuristicChatReply(q, errMsg),
+        content: t("chat.errorSorry", { error: errMsg }),
         createdAt: Date.now(),
       };
       const updated = [...next, errAssistant];
       setMessages(updated);
       await persist(updated);
-      setAiNote(t("chat.heuristicFallback"));
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -210,6 +222,7 @@ export default function LegalChat() {
         </p>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--desktop legal-chat-toolbar-pickers">
+          <KnslAgentPicker compact />
           <AiProviderPicker compact />
           <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title={t("chat.clearHistory")} aria-label={t("chat.clearHistory")}>
             <Trash2 size={15} />
@@ -217,6 +230,7 @@ export default function LegalChat() {
         </div>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--mobile">
+          <KnslAgentPicker minimal />
           <AiProviderPicker minimal />
           <button
             type="button"
@@ -235,6 +249,7 @@ export default function LegalChat() {
 
       {aiPanelOpen && (
         <div className="legal-chat-ai-panel glass">
+          <KnslAgentPicker compact />
           <AiProviderPicker compact />
         </div>
       )}

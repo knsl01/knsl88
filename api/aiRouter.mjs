@@ -36,9 +36,12 @@ async function fetchWithTimeout(url, options = {}, ms = FETCH_TIMEOUT_MS) {
   }
 }
 
+// "Otomatis (gratis dulu)" hanya memakai provider gratis. Claude (berbayar)
+// sengaja TIDAK masuk rantai auto agar tidak memunculkan error billing yang
+// membingungkan saat kuota gratis habis — pilih Claude eksplisit bila diinginkan.
 function autoProviderOrder() {
-  const order = ["gemini", "groq", "claude"];
-  if (!isServerlessHost()) order.splice(2, 0, "ollama");
+  const order = ["gemini", "groq"];
+  if (!isServerlessHost()) order.push("ollama");
   return order;
 }
 
@@ -91,12 +94,18 @@ async function callGemini({ system, user, maxTokens, model, responseFormat, imag
 async function callGroq({ system, user, maxTokens, model, images }) {
   if (normalizeImages(images).length) throw new Error("Groq belum mendukung Vision OCR di aplikasi ini. Pilih Gemini atau Claude.");
   const key = process.env.GROQ_API_KEY;
-  if (!key) throw new Error("GROQ_API_KEY belum di-set. Dapatkan gratis di https://console.groq.com/keys");
+  if (!key) {
+    throw new Error(
+      "GROQ_API_KEY belum di-set. Lokal: tambahkan GROQ_API_KEY=gsk_... di .env.local lalu restart `npm run dev`. " +
+      "Vercel: set di Environment Variables lalu redeploy. Key gratis: https://console.groq.com/keys"
+    );
+  }
   const m = model || process.env.GROQ_MODEL || DEFAULT_MODELS.groq;
+  const base = (process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/$/, "");
   const messages = [];
   if (system) messages.push({ role: "system", content: system });
   messages.push({ role: "user", content: user });
-  const resp = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
+  const resp = await fetchWithTimeout(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: m, messages, max_tokens: maxTokens || 2000, temperature: 0.2 }),

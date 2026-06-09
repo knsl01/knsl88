@@ -96,8 +96,16 @@ export function formatAiError(raw, providerId) {
   if (m.includes("groq_api_key") && (m.includes("belum") || m.includes("missing"))) {
     return "Server belum membaca GROQ_API_KEY. Tambahkan env var GROQ_API_KEY di Vercel untuk environment yang sedang dibuka, lalu redeploy.";
   }
-  if (m.includes("quota") || m.includes("exceeded") || m.includes("resource_exhausted") || m.includes("rate limit")) {
-    return `Kuota ${name} habis (limit gratis harian/bulanan). Solusi: (1) tunggu reset kuota ±24 jam, (2) ganti ke Groq di dropdown Provider AI + pasang GROQ_API_KEY di Vercel, (3) pakai Ollama lokal, atau (4) aktifkan billing di Google AI Studio.`;
+  const other = /groq/i.test(name) ? "Google Gemini" : "Groq (Llama)";
+  if (
+    m.includes("tokens per day") || m.includes("tpd") || m.includes("quota") ||
+    m.includes("exceeded") || m.includes("resource_exhausted") || m.includes("rate limit") ||
+    m.includes("too many requests") || m.includes("429")
+  ) {
+    return `Kuota/limit ${name} tercapai (tier gratis dibatasi per menit & per hari). Solusi: (1) tunggu reset (limit harian Groq reset tiap 24 jam), (2) ganti sementara ke ${other} di dropdown Provider AI, (3) persingkat pertanyaan/percakapan, atau (4) upgrade ke tier berbayar provider.`;
+  }
+  if (m.includes("credit balance") || m.includes("billing") || m.includes("payment") || m.includes("insufficient")) {
+    return `${name} memerlukan saldo/billing aktif. Pilih provider gratis (Google Gemini atau Groq) di dropdown Provider AI, atau aktifkan billing di dashboard ${name}.`;
   }
   if (m.includes("api key") || m.includes("invalid") || m.includes("permission")) {
     return `API key ${name} tidak valid atau tidak punya izin. Buat key baru di dashboard provider, update di Vercel, lalu redeploy.`;

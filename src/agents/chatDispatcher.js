@@ -10,6 +10,7 @@ import { runLegalMemo } from "./legalMemoAgent.js";
 import { runComplianceReview } from "./complianceAgent.js";
 import { routeIntent, runOrchestratedPipeline, synthesizeResults } from "./orchestrator.js";
 import { CaseAnalysisAgent } from "../knslAiAgent.js";
+import { heuristicLegalChat } from "./heuristicLegalChat.js";
 
 function lastUserText(messages) {
   const last = [...messages].reverse().find((m) => m.role === "user");
@@ -25,6 +26,24 @@ function formatConversationForRouting(messages) {
     })
     .filter((entry) => !entry.endsWith("\n"))
     .join("\n\n---\n\n");
+}
+
+/**
+ * Permintaan spesialis eksplisit (drafting/analisa/tinjauan dokumen) yang layak
+ * memakai pipeline multi-agent penuh. Selain ini, pertanyaan konseptual singkat
+ * dijawab via satu panggilan chat agar hemat kuota token harian (Groq/Gemini).
+ */
+const SPECIALIST_REQUEST =
+  /(buatkan|buatlah|tolong buat|susun(kan)?|drafkan|draftkan|buat\s+(draft|surat|gugatan|somasi|kontrak|perjanjian|nda|memo)|tinjau(lah)?\s+(kontrak|perjanjian|klausul)|review\s+(kontrak|perjanjian|klausul)|periksa\s+kontrak|analisa\s+(perkara|kronologi|kasus)|analisis\s+(perkara|kronologi|kasus)|memo\s+hukum|due\s+diligence|gap\s+analysis|audit\s+kepatuhan)/i;
+
+/** True jika pesan berupa tanya-jawab konsep singkat (bukan tugas spesialis / dokumen panjang). */
+function isConversationalQuery(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  if (t.length > 600) return false;
+  if (t.split(/\s+/).length > 120) return false;
+  if (SPECIALIST_REQUEST.test(t)) return false;
+  return true;
 }
 
 function formatAnalysisResult(data) {
@@ -75,8 +94,31 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
   const text = lastUserText(messages);
   if (!text) throw new Error("Pertanyaan kosong.");
 
+  try {
+    return await runKnslChatAgent({ agentId, messages, provider });
+  } catch (e) {
+    // Semua provider AI gagal/offline → jangan tampilkan error; jawab
+    // secara heuristik dari basis pasal KNSL agar chat tetap berguna.
+    const fallback = heuristicLegalChat({ messages });
+    if (fallback) {
+      return { text: fallback, meta: { heuristic: true, aiError: String((e && e.message) || e) } };
+    }
+    throw e;
+  }
+}
+
+async function runKnslChatAgent({ agentId, messages, provider }) {
+  const text = lastUserText(messages);
+
   switch (agentId) {
     case "orchestrator": {
+      // Hemat kuota: pertanyaan konsep singkat dijawab langsung dengan SATU
+      // panggilan LLM. Pipeline multi-agent (banyak panggilan + prompt besar)
+      // hanya untuk permintaan spesialis / dokumen panjang.
+      if (isConversationalQuery(text)) {
+        const reply = await askLegalChat({ messages, provider });
+        return { text: reply, meta: { fastPath: true } };
+      }
       const routingText = formatConversationForRouting(messages) || text;
       const route = await routeIntent({ text: routingText, provider });
       if (route.needsClarification) {
@@ -91,10 +133,16 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
         const qs = (results.questions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
         return { text: `**Klarifikasi diperlukan:**\n\n${qs}`, meta: { route: results.route } };
       }
+      // Hemat satu panggilan: jika hanya agen chat yang jalan, kembalikan
+      // jawabannya langsung tanpa panggilan sintesis tambahan.
+      const agentKeys = Object.keys(results.agents || {});
+      if (agentKeys.length === 1 && results.agents.chat?.reply && !results.critic) {
+        return { text: String(results.agents.chat.reply).trim(), meta: { route } };
+      }
       const summary = await synthesizeResults({ results, provider });
       return {
         text: String(summary).trim(),
-        meta: { route, agents: Object.keys(results.agents || {}) },
+        meta: { route, agents: agentKeys },
       };
     }
 
