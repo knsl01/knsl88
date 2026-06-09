@@ -79,6 +79,14 @@ export async function listCaseAnalyses() {
   return api("/api/case-analyses");
 }
 
+export async function getCaseAnalysis(id) {
+  return api(`/api/case-analyses/${id}`);
+}
+
+export async function deleteCaseAnalysis(id) {
+  return api(`/api/case-analyses/${id}`, { method: "DELETE" });
+}
+
 export async function saveContractReview(record) {
   return api("/api/contract-reviews", {
     method: "POST",
@@ -94,4 +102,12 @@ export async function saveContractReview(record) {
 
 export async function listContractReviews() {
   return api("/api/contract-reviews");
+}
+
+export async function getContractReview(id) {
+  return api(`/api/contract-reviews/${id}`);
+}
+
+export async function deleteContractReview(id) {
+  return api(`/api/contract-reviews/${id}`, { method: "DELETE" });
 }

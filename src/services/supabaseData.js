@@ -59,11 +59,37 @@ export async function listCaseAnalysesCloud() {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("case_analyses")
-    .select("id, title, law_filter, source, ai_status, created_at")
+    .select("id, title, law_filter, source, ai_status, created_at, payload")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
   return data || [];
+}
+
+export async function getCaseAnalysisCloud(id) {
+  if (!supabase || !id) return null;
+  const { data, error } = await supabase
+    .from("case_analyses")
+    .select("id, title, law_filter, source, ai_status, created_at, payload")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteCaseAnalysisCloud(id) {
+  if (!supabase || !id) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from("case_analyses").delete().eq("id", id);
+  if (error) throw error;
+  if (user) {
+    await supabase.from("audit_log").insert({
+      user_id: user.id,
+      action: "delete_case_analysis",
+      target: id,
+      meta: {},
+    });
+  }
 }
 
 export async function listContractReviewsCloud() {
@@ -75,4 +101,30 @@ export async function listContractReviewsCloud() {
     .limit(50);
   if (error) throw error;
   return data || [];
+}
+
+export async function getContractReviewCloud(id) {
+  if (!supabase || !id) return null;
+  const { data, error } = await supabase
+    .from("contract_reviews")
+    .select("id, name, perspective, used_ai, ai_hits, risk_score, risk_category, created_at, payload")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteContractReviewCloud(id) {
+  if (!supabase || !id) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from("contract_reviews").delete().eq("id", id);
+  if (error) throw error;
+  if (user) {
+    await supabase.from("audit_log").insert({
+      user_id: user.id,
+      action: "delete_contract_review",
+      target: id,
+      meta: {},
+    });
+  }
 }
