@@ -46,6 +46,15 @@ function isConversationalQuery(text) {
   return true;
 }
 
+function hasClarificationContext(messages) {
+  return messages
+    .slice(0, -1)
+    .some((m) => (
+      m.role === "assistant" &&
+      /klarifikasi|memerlukan klarifikasi|clarification/i.test(String(m.content || ""))
+    ));
+}
+
 function formatAnalysisResult(data) {
   const lines = ["**Hasil analisa perkara**\n"];
   if (data.facts?.length) {
@@ -115,7 +124,7 @@ async function runKnslChatAgent({ agentId, messages, provider }) {
       // Hemat kuota: pertanyaan konsep singkat dijawab langsung dengan SATU
       // panggilan LLM. Pipeline multi-agent (banyak panggilan + prompt besar)
       // hanya untuk permintaan spesialis / dokumen panjang.
-      if (isConversationalQuery(text)) {
+      if (isConversationalQuery(text) && !hasClarificationContext(messages)) {
         const reply = await askLegalChat({ messages, provider });
         return { text: reply, meta: { fastPath: true } };
       }

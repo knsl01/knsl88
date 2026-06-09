@@ -92,7 +92,7 @@ await withMockFetch(async (url, options) => {
   assert.match(routePrompt, /Saya tergugat dan butuh jawaban/);
   assert.equal(dispatcherCalls[0].generationConfig.responseMimeType, "application/json");
   assert.equal(dispatcherCalls[1].generationConfig.responseMimeType, undefined);
-  assert.equal(result.text, "Sintesis fallback");
+  assert.equal(result.text, "Jawaban chat fallback");
 });
 
 console.log("AI smoke tests passed");
