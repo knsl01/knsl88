@@ -1,7 +1,13 @@
-/** Legal chat history — per-user via window.storage */
+/** Legal chat history — cloud (Supabase) + local fallback */
 
 import id from "../i18n/locales/id.js";
 import en from "../i18n/locales/en.js";
+import {
+  isCloudChatEnabled,
+  loadCloudChatMessages,
+  saveCloudChatMessages,
+  clearCloudChat,
+} from "./supabaseChat.js";
 
 const KEY = "legal-chat:messages";
 const LOCALE_KEY = "knsl:locale";
@@ -39,7 +45,7 @@ export function defaultWelcomeMessage(locale) {
   };
 }
 
-export async function loadChatMessages() {
+async function loadLocalMessages() {
   const locale = getStoredLocale();
   try {
     const raw = await storageGet(KEY);
@@ -52,12 +58,52 @@ export async function loadChatMessages() {
   }
 }
 
+export async function loadChatMessages() {
+  const locale = getStoredLocale();
+  const welcome = defaultWelcomeMessage(locale);
+
+  if (isCloudChatEnabled()) {
+    try {
+      const cloud = await loadCloudChatMessages();
+      if (cloud && cloud.length) return [welcome, ...cloud.filter((m) => m.role !== "system")];
+      if (cloud && cloud.length === 0) return [welcome];
+    } catch {
+      /* fallback local */
+    }
+  }
+
+  return loadLocalMessages();
+}
+
 export async function saveChatMessages(messages) {
-  await storageSet(KEY, messages.slice(-50));
+  const trimmed = messages.slice(-50);
+
+  if (isCloudChatEnabled()) {
+    try {
+      const lastUser = [...trimmed].reverse().find((m) => m.role === "user");
+      await saveCloudChatMessages(trimmed, {
+        title: lastUser?.content?.slice(0, 80) || "Chat hukum",
+      });
+    } catch {
+      /* continue local backup */
+    }
+  }
+
+  await storageSet(KEY, trimmed);
 }
 
 export async function clearChatMessages(locale = getStoredLocale()) {
+  if (isCloudChatEnabled()) {
+    try {
+      await clearCloudChat();
+    } catch { /* ignore */ }
+  }
+
   const welcome = [defaultWelcomeMessage(locale)];
-  await saveChatMessages(welcome);
+  await storageSet(KEY, welcome);
   return welcome;
+}
+
+export function isChatCloudSyncActive() {
+  return isCloudChatEnabled();
 }

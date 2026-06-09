@@ -154,6 +154,7 @@ export default {
     answeredViaAgent: " · Agen: {{agent}}",
     knslAgentLabel: "Agen KNSL AI",
     knslAgentRecommended: "Direkomendasikan untuk kebanyakan pertanyaan",
+    cloudSync: "Riwayat chat disinkronkan ke cloud (Supabase)",
     clearHistory: "Hapus riwayat",
     aiProviderDetail: "Pengaturan AI",
     errorContact: "Gagal menghubungi AI.",
