@@ -59,7 +59,16 @@ export default function SignupPage() {
         navigate(DEFAULT_AUTHENTICATED_ROUTE, { replace: true });
       }
     } catch (err) {
-      setError(formatAuthError(err));
+      const msg = formatAuthError(err);
+      setError(msg);
+      const code = err?.code || "";
+      if (
+        code === "email_exists"
+        || msg.includes("sudah terdaftar")
+        || String(err?.message || "").toLowerCase().includes("already registered")
+      ) {
+        setTimeout(() => navigate(ROUTES.LOGIN, { state: { email: email.trim().toLowerCase() } }), 2800);
+      }
     } finally {
       setLoading(false);
     }
@@ -78,7 +87,7 @@ export default function SignupPage() {
           <GoogleAuthButton
             label={t("auth.googleSignup")}
             disabled={loading}
-            onError={setError}
+            onError={(msg) => setError(typeof msg === "string" ? msg : formatAuthError(msg))}
           />
           <div className="auth-divider-row">
             <span className="auth-divider-line" />

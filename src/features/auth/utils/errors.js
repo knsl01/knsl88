@@ -2,6 +2,7 @@ const MAP = {
   "Invalid login credentials": "Email atau password salah. Periksa kembali atau reset password.",
   "Email not confirmed": "Email belum dikonfirmasi. Cek inbox (dan folder spam) untuk link aktivasi.",
   "User already registered": "Email sudah terdaftar. Silakan masuk atau gunakan lupa password.",
+  "email_exists": "Email sudah terdaftar. Buka halaman Masuk — jangan daftar lagi.",
   "Password should be at least 6 characters": "Password minimal 6 karakter.",
   "Unable to validate email address: invalid format": "Format email tidak valid.",
   "Signup requires a valid password": "Password tidak memenuhi syarat keamanan.",
