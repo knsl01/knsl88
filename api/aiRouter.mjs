@@ -50,19 +50,22 @@ function pickAutoProvider() {
   throw new Error("GEMINI_API_KEY atau GROQ_API_KEY belum di-set di Vercel. Ollama tidak tersedia di server cloud.");
 }
 
-async function callGemini({ system, user, maxTokens, model }) {
+async function callGemini({ system, user, maxTokens, model, responseFormat = "text" }) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY belum di-set. Dapatkan gratis di https://aistudio.google.com/apikey");
   const m = model || process.env.GEMINI_MODEL || DEFAULT_MODELS.gemini;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`;
+  const generationConfig = {
+    maxOutputTokens: maxTokens || 2000,
+    temperature: 0.2,
+  };
+  if (responseFormat === "json") {
+    generationConfig.responseMimeType = "application/json";
+  }
   const body = {
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
     contents: [{ role: "user", parts: [{ text: user }] }],
-    generationConfig: {
-      maxOutputTokens: maxTokens || 2000,
-      temperature: 0.2,
-      responseMimeType: "application/json",
-    },
+    generationConfig,
   };
   const resp = await fetchWithTimeout(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const data = await resp.json().catch(() => ({}));
@@ -130,11 +133,17 @@ async function callClaude({ system, user, maxTokens, model }) {
 
 const CALLERS = { gemini: callGemini, groq: callGroq, ollama: callOllama, claude: callClaude };
 
+function normalizeResponseFormat(v) {
+  return String(v || "text").toLowerCase() === "json" ? "json" : "text";
+}
+
 /** Route to provider; `auto` tries free providers in order with fallback. */
 export async function routeAI(payload) {
   const { system, user, maxTokens = 2000, model } = payload || {};
+  const responseFormat = normalizeResponseFormat(payload?.responseFormat);
   if (!user) throw new Error("Prompt user kosong");
 
+  const callOpts = { system, user, maxTokens, model, responseFormat };
   let provider = String(payload.provider || "auto").toLowerCase();
   if (provider === "auto") {
     const order = autoProviderOrder();
@@ -148,7 +157,7 @@ export async function routeAI(payload) {
     }
     let lastErr;
     for (const p of available) {
-      try { return await CALLERS[p]({ system, user, maxTokens, model }); }
+      try { return await CALLERS[p](callOpts); }
       catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("Tidak ada provider AI yang tersedia");
@@ -156,7 +165,7 @@ export async function routeAI(payload) {
 
   const fn = CALLERS[provider];
   if (!fn) throw new Error(`Provider tidak dikenal: ${provider}`);
-  return fn({ system, user, maxTokens, model });
+  return fn(callOpts);
 }
 
 export function listAvailableProviders() {

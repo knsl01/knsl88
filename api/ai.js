@@ -1,6 +1,6 @@
 /* Vercel Serverless — unified AI proxy (Gemini, Groq, Ollama, Claude).
    Route: POST /api/ai
-   Body: { provider, system, user, maxTokens, model } */
+   Body: { provider, system, user, maxTokens, model, responseFormat?: 'text'|'json' } */
 import { routeAI, listAvailableProviders } from "./aiRouter.mjs";
 
 export default async function handler(req, res) {

@@ -34,6 +34,7 @@ export async function runLegalResearch({ query, context, filter = "all", format 
     user,
     maxTokens: 2800,
     provider,
+    responseFormat: format === "json" ? "json" : "text",
   });
 
   const base = { retrievedPasal: hits.slice(0, 12), outsideHints: outside };
