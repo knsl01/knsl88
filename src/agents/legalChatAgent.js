@@ -1,5 +1,6 @@
 import { callLLM } from "../knslAiAgent.js";
 import { LEGAL_CHAT_SYSTEM } from "./prompts/index.js";
+import { searchPasal, outsideHits } from "../services/pasalSearch.js";
 
 const MAX_HISTORY = 12;
 
@@ -35,6 +36,46 @@ export async function askLegalChat({ messages, provider }) {
   });
 
   return String(text).trim();
+}
+
+export function buildHeuristicChatReply(query, reason = "") {
+  const hits = searchPasal(query, "all").slice(0, 6);
+  const outside = outsideHits(query).slice(0, 4);
+  const lines = [
+    "**Mode heuristik offline**",
+    "",
+    "AI cloud belum tersambung, jadi saya tampilkan rujukan awal dari indeks KNSL yang bisa dicek manual.",
+  ];
+
+  if (reason) {
+    lines.push("", `**Status AI:** ${reason}`);
+  }
+
+  if (hits.length) {
+    lines.push("", "**Rujukan pasal terdekat:**");
+    hits.forEach((h, i) => {
+      const title = h.b ? ` — ${h.b}` : "";
+      const snippet = String(h.t || "").replace(/\s+/g, " ").slice(0, 220);
+      lines.push(`${i + 1}. **${h.l} Pasal ${h.p}${title}** _(relevansi ${h.rel || 0}%)_`);
+      lines.push(`   ${snippet}${snippet.length >= 220 ? "…" : ""}`);
+    });
+  } else {
+    lines.push("", "**Rujukan pasal terdekat:** belum ada kecocokan kuat di indeks lokal.");
+  }
+
+  if (outside.length) {
+    lines.push("", "**Petunjuk referensi di luar indeks lokal:**");
+    outside.forEach((o) => lines.push(`- ${o.k}: ${o.v}`));
+  }
+
+  lines.push(
+    "",
+    "**Langkah praktis:** gunakan rujukan ini sebagai titik awal, lalu verifikasi teks peraturan terbaru dan fakta kasus.",
+    "",
+    "_Ini informasi riset hukum awal, bukan nasihat hukum resmi._"
+  );
+
+  return lines.join("\n");
 }
 
 export const SUGGESTED_PROMPTS = [

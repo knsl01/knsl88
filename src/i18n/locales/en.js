@@ -158,6 +158,7 @@ export default {
     clearHistory: "Clear history",
     aiProviderDetail: "AI settings",
     errorContact: "Failed to reach AI.",
+    heuristicFallback: "Cloud AI is not connected; offline heuristic answer is shown.",
     errorSorry: "Sorry, I cannot respond right now.\n\n**Error:** {{error}}\n\nTry another AI provider or check API keys in deploy settings.",
   },
   scan: {
