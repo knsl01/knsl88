@@ -13,6 +13,7 @@ export async function runComplianceReview({ scope, context, provider }) {
     user,
     maxTokens: 3000,
     provider,
+    responseFormat: "json",
   });
 
   try {

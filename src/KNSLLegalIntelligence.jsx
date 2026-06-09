@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
-import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
+import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, resolveAiProvider } from "./aiProviders.js";
 import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm } from "./services/pasalSearch.js";
 import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
@@ -900,7 +900,7 @@ function Analysis({ seed }) {
             const heur = runPipeline(input, flt);
             heur.source = "heuristic";
             heur.aiStatus = "error";
-            heur.aiError = formatAiError(e.message || e, getAiProvider());
+            heur.aiError = formatAiError(e.message || e, resolveAiProvider());
             setData(heur);
             setTab("facts");
             setActiveHistoryId(null);
@@ -977,7 +977,7 @@ function Analysis({ seed }) {
             </label>
             {useAI && (
               <>
-                <KnslAgentPicker compact defaultId={AGENT_IDS.ANALYSIS} allowedIds={[AGENT_IDS.ANALYSIS, AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.MEMO]} />
+                <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.ANALYSIS} allowedIds={[AGENT_IDS.ANALYSIS, AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.MEMO]} />
                 <AiProviderPicker compact />
               </>
             )}
@@ -1055,7 +1055,7 @@ function Analysis({ seed }) {
                       {" · "}Invarian {data.audit.passed}/{data.audit.total}
                     </>
                   ) : data.aiStatus === "error" ? (
-                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />{formatAiError(data.aiError || getLastAiError(), getAiProvider())} <span style={{ color: "var(--muted)" }}>(hasil heuristik ditampilkan)</span></>
+                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />{formatAiError(data.aiError || getLastAiError(), resolveAiProvider())} <span style={{ color: "var(--muted)" }}>(hasil heuristik ditampilkan)</span></>
                   ) : data.aiStatus === "fallback" ? (
                     <><Info size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />{data.aiNote || "AI tidak meningkatkan hasil — pakai heuristik."}</>
                   ) : data.aiStatus === "off" ? (
@@ -1273,11 +1273,11 @@ function Research({ seed }) {
     setAiBusy(true);
     setAiErr("");
     try {
-      const data = await runLegalResearch({ query: q, filter, format: "json", provider: getAiProvider() });
+      const data = await runLegalResearch({ query: q, filter, format: "json", provider: resolveAiProvider() });
       setAiText(formatResearchResult(data));
       if (data.retrievedPasal?.length && !res.length) setRes(data.retrievedPasal);
     } catch (e) {
-      setAiErr(formatAiError(e.message || e, getAiProvider()));
+      setAiErr(formatAiError(e.message || e, resolveAiProvider()));
     } finally {
       setAiBusy(false);
     }
@@ -1302,7 +1302,7 @@ function Research({ seed }) {
         </label>
         {useAI && (
           <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-            <KnslAgentPicker compact defaultId={AGENT_IDS.RESEARCH} allowedIds={[AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.CHAT]} />
+            <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.RESEARCH} allowedIds={[AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.CHAT]} />
             <AiProviderPicker compact />
             <button className="btn-primary" onClick={runAi} disabled={aiBusy || !q.trim()}>
               {aiBusy ? <><Activity size={16} /> Menyusun riset…</> : <><Sparkles size={16} /> Jalankan Riset AI</>}
@@ -1886,12 +1886,12 @@ function Drafting() {
         docType: doc.label,
         context: fieldContext,
         format: "prose",
-        provider: getAiProvider(),
+        provider: resolveAiProvider(),
       });
       setAiDraft(data.body || "");
       setPreviewMode("ai");
     } catch (e) {
-      setAiErr(formatAiError(e.message || e, getAiProvider()));
+      setAiErr(formatAiError(e.message || e, resolveAiProvider()));
     } finally {
       setAiBusy(false);
     }
@@ -1952,7 +1952,7 @@ function Drafting() {
           </div>
           <div style={{ marginTop: 16, border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Sparkles size={15} className="gold-text" /><span style={{ fontSize: 12.5, fontWeight: 600 }}>Generate dengan KNSL AI</span></div>
-            <KnslAgentPicker compact defaultId={AGENT_IDS.DRAFTING} allowedIds={[AGENT_IDS.DRAFTING, "orchestrator", AGENT_IDS.MEMO]} />
+            <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.DRAFTING} allowedIds={[AGENT_IDS.DRAFTING, "orchestrator", AGENT_IDS.MEMO]} />
             <AiProviderPicker compact />
             <textarea className="field" rows={3} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder={`Instruksi opsional, mis. ton formal, pihak A sebagai kreditor… (default: ${doc.label})`} style={{ marginTop: 8 }} />
             <button className="btn-primary" style={{ marginTop: 10, width: "100%", justifyContent: "center" }} onClick={runAiDraft} disabled={aiBusy}>
@@ -2777,7 +2777,7 @@ function ContractReview() {
         ctx, usedAI: aiHits > 0, aiHits, aiError: crResult.aiError,
         clauses: reviewed, risk, dataPoints,
       };
-      if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, getAiProvider()) + " (hasil heuristik tetap ditampilkan)");
+      if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, resolveAiProvider()) + " (hasil heuristik tetap ditampilkan)");
       await crSaveRecord(record);
       await crAudit("analyze_contract", record.name + " · skor " + risk.score);
       await persistContractReview(record);
@@ -2867,7 +2867,7 @@ function ContractReview() {
             </label>
             {useAI && (
               <>
-                <KnslAgentPicker compact defaultId={AGENT_IDS.CONTRACT} allowedIds={[AGENT_IDS.CONTRACT, AGENT_IDS.COMPLIANCE, "orchestrator", AGENT_IDS.DRAFTING]} />
+                <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.CONTRACT} allowedIds={[AGENT_IDS.CONTRACT, AGENT_IDS.COMPLIANCE, "orchestrator", AGENT_IDS.DRAFTING]} />
                 <AiProviderPicker compact />
               </>
             )}

@@ -153,6 +153,8 @@ export default {
     answeredVia: "Dijawab via {{provider}}{{model}}",
     answeredViaAgent: " · Agen: {{agent}}",
     knslAgentLabel: "Agen KNSL AI",
+    knslAgentEnable: "Aktifkan routing agen KNSL",
+    knslAgentOffHint: "Nonaktif — modul memakai AI default (tanpa routing multi-agent).",
     knslAgentRecommended: "Direkomendasikan untuk kebanyakan pertanyaan",
     cloudSync: "Riwayat chat disinkronkan ke cloud (Supabase)",
     clearHistory: "Hapus riwayat",

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Bot, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
 import { dispatchKnslChatAgent } from "../../agents/chatDispatcher.js";
-import { getKnslAgent, getKnslAgentLabel } from "../../knslAiAgents.js";
+import { effectiveKnslAgentId, getKnslAgentLabel } from "../../knslAiAgents.js";
+import { AGENT_IDS } from "../../agents/registry.js";
 import {
   loadChatMessages,
   saveChatMessages,
@@ -12,7 +13,7 @@ import {
 } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
 import KnslAgentPicker from "../../KnslAgentPicker.jsx";
-import { getAiProvider } from "../../aiProviders.js";
+import { resolveAiProvider, getAiProvider } from "../../aiProviders.js";
 import { getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useLocalUser } from "../../hooks/useLocalUser.js";
@@ -142,11 +143,11 @@ export default function LegalChat() {
     setLoading(true);
 
     try {
-      const agentId = getKnslAgent();
+      const agentId = effectiveKnslAgentId(AGENT_IDS.CHAT);
       const { text: reply } = await dispatchKnslChatAgent({
         agentId,
         messages: next,
-        provider: getAiProvider(),
+        provider: resolveAiProvider(),
       });
       const assistantMsg = {
         id: msgId(),
@@ -216,7 +217,7 @@ export default function LegalChat() {
         </p>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--desktop legal-chat-toolbar-pickers">
-          <KnslAgentPicker compact />
+          <KnslAgentPicker compact showEnableToggle defaultEnabled />
           <AiProviderPicker compact />
           <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title={t("chat.clearHistory")} aria-label={t("chat.clearHistory")}>
             <Trash2 size={15} />
@@ -224,7 +225,7 @@ export default function LegalChat() {
         </div>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--mobile">
-          <KnslAgentPicker minimal />
+          <KnslAgentPicker minimal showEnableToggle defaultEnabled />
           <AiProviderPicker minimal />
           <button
             type="button"
@@ -243,7 +244,7 @@ export default function LegalChat() {
 
       {aiPanelOpen && (
         <div className="legal-chat-ai-panel glass">
-          <KnslAgentPicker compact />
+          <KnslAgentPicker compact showEnableToggle defaultEnabled />
           <AiProviderPicker compact />
         </div>
       )}

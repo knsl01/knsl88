@@ -33,6 +33,7 @@ export async function routeIntent({ text, matterContext, provider }) {
     user,
     maxTokens: 1200,
     provider,
+    responseFormat: "json",
   });
 
   return parseAgentJson(raw);
@@ -157,6 +158,7 @@ export async function runOrchestratedPipeline({
         user: `Skema:\n${CRITIC_QA_SCHEMA}\n\nOUTPUT AGEN:\n${criticInput}`,
         maxTokens: 1500,
         provider,
+        responseFormat: "json",
       });
       results.critic = parseAgentJson(criticRaw);
     } catch {

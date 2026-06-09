@@ -6,6 +6,27 @@
 import { AGENT_IDS } from "./agents/registry.js";
 
 const STORAGE_KEY = "knsl:knsl-agent";
+const ENABLED_KEY = "knsl:knsl-agent-enabled";
+
+export function getKnslAgentEnabled(defaultOn = true) {
+  try {
+    const v = localStorage.getItem(ENABLED_KEY);
+    if (v === "0" || v === "false") return false;
+    if (v === "1" || v === "true") return true;
+  } catch { /* ignore */ }
+  return defaultOn;
+}
+
+/** Agen yang dipakai saat ini (fallback ke Chat Hukum jika routing agen dimatikan). */
+export function effectiveKnslAgentId(fallback = AGENT_IDS.CHAT) {
+  return getKnslAgentEnabled() ? getKnslAgent() : fallback;
+}
+
+export function setKnslAgentEnabled(on) {
+  try {
+    localStorage.setItem(ENABLED_KEY, on ? "1" : "0");
+  } catch { /* ignore */ }
+}
 
 /** Agen yang tersedia di UI chat (urutan tampilan) */
 export const KNSL_CHAT_AGENTS = [
