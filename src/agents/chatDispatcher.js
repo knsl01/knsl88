@@ -16,6 +16,24 @@ function lastUserText(messages) {
   return last?.content?.trim() || "";
 }
 
+/**
+ * Permintaan spesialis eksplisit (drafting/analisa/tinjauan dokumen) yang layak
+ * memakai pipeline multi-agent penuh. Selain ini, pertanyaan konseptual singkat
+ * dijawab via satu panggilan chat agar hemat kuota token harian (Groq/Gemini).
+ */
+const SPECIALIST_REQUEST =
+  /(buatkan|buatlah|tolong buat|susun(kan)?|drafkan|draftkan|buat\s+(draft|surat|gugatan|somasi|kontrak|perjanjian|nda|memo)|tinjau(lah)?\s+(kontrak|perjanjian|klausul)|review\s+(kontrak|perjanjian|klausul)|periksa\s+kontrak|analisa\s+(perkara|kronologi|kasus)|analisis\s+(perkara|kronologi|kasus)|memo\s+hukum|due\s+diligence|gap\s+analysis|audit\s+kepatuhan)/i;
+
+/** True jika pesan berupa tanya-jawab konsep singkat (bukan tugas spesialis / dokumen panjang). */
+function isConversationalQuery(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  if (t.length > 600) return false;
+  if (t.split(/\s+/).length > 120) return false;
+  if (SPECIALIST_REQUEST.test(t)) return false;
+  return true;
+}
+
 function formatAnalysisResult(data) {
   const lines = ["**Hasil analisa perkara**\n"];
   if (data.facts?.length) {
@@ -66,6 +84,13 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
 
   switch (agentId) {
     case "orchestrator": {
+      // Hemat kuota: pertanyaan konsep singkat dijawab langsung dengan SATU
+      // panggilan LLM. Pipeline multi-agent (banyak panggilan + prompt besar)
+      // hanya untuk permintaan spesialis / dokumen panjang.
+      if (isConversationalQuery(text)) {
+        const reply = await askLegalChat({ messages, provider });
+        return { text: reply, meta: { fastPath: true } };
+      }
       const route = await routeIntent({ text, provider });
       if (route.needsClarification) {
         const qs = (route.clarifyingQuestions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
@@ -79,10 +104,16 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
         const qs = (results.questions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
         return { text: `**Klarifikasi diperlukan:**\n\n${qs}`, meta: { route: results.route } };
       }
+      // Hemat satu panggilan: jika hanya agen chat yang jalan, kembalikan
+      // jawabannya langsung tanpa panggilan sintesis tambahan.
+      const agentKeys = Object.keys(results.agents || {});
+      if (agentKeys.length === 1 && results.agents.chat?.reply && !results.critic) {
+        return { text: String(results.agents.chat.reply).trim(), meta: { route } };
+      }
       const summary = await synthesizeResults({ results, provider });
       return {
         text: String(summary).trim(),
-        meta: { route, agents: Object.keys(results.agents || {}) },
+        meta: { route, agents: agentKeys },
       };
     }
 
