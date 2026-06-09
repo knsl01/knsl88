@@ -158,6 +158,7 @@ export default {
     clearHistory: "Hapus riwayat",
     aiProviderDetail: "Pengaturan AI",
     errorContact: "Gagal menghubungi AI.",
+    heuristicFallback: "AI cloud belum tersambung; jawaban heuristik offline ditampilkan.",
     errorSorry: "Maaf, saya tidak dapat menjawab saat ini.\n\n**Error:** {{error}}\n\nCoba ganti provider AI atau periksa API key di pengaturan deploy.",
   },
   scan: {

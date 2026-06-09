@@ -153,6 +153,14 @@ async function callClaude({ system, user, maxTokens, model, images }) {
 
 const CALLERS = { gemini: callGemini, groq: callGroq, ollama: callOllama, claude: callClaude };
 
+function isProviderAvailable(id, meta = PROVIDER_META[id]) {
+  if (!meta) return false;
+  if (id === "auto") return autoProviderOrder().some((p) => isProviderAvailable(p));
+  if (id === "ollama") return !isServerlessHost();
+  if (meta.keyEnv) return !!process.env[meta.keyEnv];
+  return true;
+}
+
 /** Route to provider; `auto` tries free providers in order with fallback. */
 export async function routeAI(payload) {
   const { system, user, maxTokens = 2000, model, images = [] } = payload || {};
@@ -161,6 +169,7 @@ export async function routeAI(payload) {
   const normalizedImages = normalizeImages(images);
 
   let provider = String(payload.provider || "auto").toLowerCase();
+  if (provider === "ollama" && isServerlessHost()) provider = "auto";
   if (provider === "auto") {
     const order = autoProviderOrder();
     const available = order.filter((p) => {
@@ -177,7 +186,9 @@ export async function routeAI(payload) {
     let lastErr;
     for (const p of available) {
       try { return await CALLERS[p]({ system, user, maxTokens, model, responseFormat, images: normalizedImages }); }
-      catch (e) { lastErr = e; }
+      catch (e) {
+        lastErr = new Error(`${PROVIDER_META[p].label}: ${e.message || e}`);
+      }
     }
     throw lastErr || new Error("Tidak ada provider AI yang tersedia");
   }
@@ -191,13 +202,17 @@ export function listAvailableProviders() {
   return Object.entries(PROVIDER_META).map(([id, meta]) => ({
     id,
     ...meta,
-    configured: meta.keyEnv
-      ? !!process.env[meta.keyEnv]
-      : id === "auto"
-        ? autoProviderOrder().some((p) => {
-          const candidate = PROVIDER_META[p];
-          return candidate.keyEnv ? !!process.env[candidate.keyEnv] : !isServerlessHost();
-        })
-        : !isServerlessHost(),
+    configured: isProviderAvailable(id, meta),
+    available: isProviderAvailable(id, meta),
   }));
+}
+
+export function getAIStatus() {
+  const providers = listAvailableProviders();
+  const autoProvider = autoProviderOrder().find((p) => isProviderAvailable(p)) || null;
+  return {
+    serverless: isServerlessHost(),
+    autoProvider,
+    providers,
+  };
 }
