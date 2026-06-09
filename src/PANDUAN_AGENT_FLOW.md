@@ -209,7 +209,7 @@ Ini menggantikan pola ad-hoc `seed` / `window.__KNSL_INTAKE__` untuk arsitektur 
 |------------------------|-------|------------------|
 | `analysis` | analysis | ✅ AI + heuristic |
 | `contract` | contract | ✅ AI + heuristic |
-| `chat` | chat | ✅ |
+| `chat` | chat | ✅ + **pemilih Agen KNSL AI** di toolbar chat |
 | `scan` | intake | ✅ klasifikasi AI |
 | `research` | research | ⏳ searchPasal heuristik; AI agent siap |
 | `drafting` | drafting | ⏳ template only; AI agent siap |

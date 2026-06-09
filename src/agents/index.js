@@ -16,3 +16,4 @@ export { runLegalResearch } from "./legalResearchAgent.js";
 export { runLegalDrafting } from "./legalDraftingAgent.js";
 export { runLegalMemo } from "./legalMemoAgent.js";
 export { runComplianceReview } from "./complianceAgent.js";
+export { dispatchKnslChatAgent } from "./chatDispatcher.js";

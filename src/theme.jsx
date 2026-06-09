@@ -256,7 +256,9 @@ export const STYLES = `
 .legal-chat-disclaimer{margin:0;font-size:12px;color:var(--muted);line-height:1.4;}
 .legal-chat-toolbar{display:flex;align-items:flex-start;gap:8px;flex-shrink:0;}
 .legal-chat-toolbar--mobile{display:none;}
-.legal-chat-toolbar--desktop .ai-provider-wrap{min-width:220px;margin-top:0!important;}
+.legal-chat-toolbar--desktop .ai-provider-wrap,.legal-chat-toolbar--desktop .knsl-agent-wrap{min-width:200px;margin-top:0!important;}
+.legal-chat-toolbar-pickers{flex-wrap:wrap;justify-content:flex-end;}
+.legal-chat-ai-panel{display:grid;gap:8px;}
 .ai-provider-minimal{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
 .ai-provider-minimal select{width:100%;margin:0!important;padding:8px 10px!important;font-size:12.5px!important;}
 .ai-provider-minimal-dot{width:8px;height:8px;border-radius:50%;background:var(--emerald-bright);box-shadow:0 0 8px var(--emerald-bright);flex-shrink:0;}
