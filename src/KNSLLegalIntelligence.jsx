@@ -879,30 +879,41 @@ function Analysis({ seed }) {
 
   const doRun = async (input, flt) => {
     if (!input || !input.trim()) return;
-    setLoading(true); setAiBusy(false); setAiWanted(useAI);
-    await new Promise((r) => setTimeout(r, 250));
-    if (useAI) {
-      setAiBusy(true);
-      try {
-        const r = await aiRunPipeline(input, flt);
-        setData(r); setLoading(false); setTab("facts"); setActiveHistoryId(null);
-        await persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: r.source, aiStatus: r.aiStatus, payload: r });
-        refreshHistory();
-      }
-      catch (e) {
+    setLoading(true);
+    setAiBusy(false);
+    setAiWanted(useAI);
+    try {
+      await new Promise((r) => setTimeout(r, 250));
+      if (useAI) {
+        setAiBusy(true);
+        try {
+          const r = await aiRunPipeline(input, flt);
+          setData(r);
+          setTab("facts");
+          setActiveHistoryId(null);
+          persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: r.source, aiStatus: r.aiStatus, payload: r }).then(() => refreshHistory());
+        } catch (e) {
+          const heur = runPipeline(input, flt);
+          heur.source = "heuristic";
+          heur.aiStatus = "error";
+          heur.aiError = formatAiError(e.message || e, getAiProvider());
+          setData(heur);
+          setTab("facts");
+          setActiveHistoryId(null);
+          persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "error", payload: heur }).then(() => refreshHistory());
+        }
+      } else {
         const heur = runPipeline(input, flt);
-        heur.source = "heuristic"; heur.aiStatus = "error"; heur.aiError = String(e.message || e);
-        setData(heur); setLoading(false); setTab("facts"); setActiveHistoryId(null);
-        await persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "error", payload: heur });
-        refreshHistory();
+        heur.source = "heuristic";
+        heur.aiStatus = "off";
+        setData(heur);
+        setTab("facts");
+        setActiveHistoryId(null);
+        persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "off", payload: heur }).then(() => refreshHistory());
       }
+    } finally {
+      setLoading(false);
       setAiBusy(false);
-    } else {
-      const heur = runPipeline(input, flt);
-      heur.source = "heuristic"; heur.aiStatus = "off";
-      setData(heur); setLoading(false); setTab("facts"); setActiveHistoryId(null);
-      await persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "off", payload: heur });
-      refreshHistory();
     }
   };
   const run = (text) => { doRun(text != null ? text : q, filter); };
@@ -945,7 +956,7 @@ function Analysis({ seed }) {
               <option value="all">Semua Sumber Hukum</option><option value="pidana">Pidana — KUHP</option><option value="korporasi">Korporasi — UU PT</option><option value="tata">Tata Negara — UUD 1945</option><option value="pailit">Kepailitan & PKPU — UU 37/2004</option><option value="siber">Siber / ITE</option><option value="niaga">Niaga — Arbitrase & P2SK</option><option value="acara">Hukum Acara — KUHAP & Rv</option>
             </select>
             <textarea className="field" rows={9} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tempel kronologi lengkap di sini..." />
-            <button className="btn-primary" onClick={() => run()} disabled={loading}>{loading ? <><Activity size={16} /> Menjalankan pipeline...</> : <><Zap size={16} /> Jalankan Analisa</>}</button>
+            <button className="btn-primary" onClick={() => run()} disabled={loading}>{loading ? <><Activity size={16} /> {aiBusy ? "AI menganalisa kronologi…" : "Menjalankan pipeline…"}</> : <><Zap size={16} /> Jalankan Analisa</>}</button>
             <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 12.5, color: "var(--silver)", marginTop: -2 }}>
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 15, height: 15 }} />
               <Sparkles size={13} className="gold-text" /> Agen AI (Fakta, Isu &amp; rerank Pasal) — uji unsur tetap deterministik

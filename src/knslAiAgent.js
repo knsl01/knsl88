@@ -28,24 +28,46 @@ export function parseAgentJson(text) {
   }
 }
 
+const LLM_TIMEOUT_MS = 65000;
+
+async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const resp = await fetch(ep, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      const raw = data.error || `AI HTTP ${resp.status}`;
+      throw new Error(formatAiError(raw, prov));
+    }
+    return data;
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      throw new Error(`Permintaan AI timeout (${Math.round(timeoutMs / 1000)}s). Coba lagi, ganti provider ke Gemini/Groq, atau matikan AI untuk hasil heuristik.`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Unified LLM call — routes to Gemini / Groq / Ollama / Claude via /api/ai. */
-export async function callLLM({ system, user, maxTokens = 2000, provider, retries = 2 }) {
+export async function callLLM({ system, user, maxTokens = 2000, provider, retries = 2, timeoutMs }) {
   const ep = getAiProxyEndpoint();
   const prov = provider || getAiProvider();
+  if (prov === "ollama" && typeof window !== "undefined" && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
+    throw new Error("Ollama hanya untuk dev lokal. Di knsl.tech pilih Google Gemini atau Groq.");
+  }
   const body = { provider: prov, system: system || undefined, user, maxTokens };
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const resp = await fetch(ep, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        const raw = data.error || `AI HTTP ${resp.status}`;
-        throw new Error(formatAiError(raw, prov));
-      }
+      const data = await fetchAi(ep, body, prov, timeoutMs || LLM_TIMEOUT_MS);
       const txt = String(data.text || "").trim();
       if (!txt) throw new Error("Respons AI kosong");
       setLastAiMeta({ provider: data.provider, model: data.model });
@@ -82,7 +104,7 @@ export const CaseAnalysisAgent = {
         user += "\nIsu terdeteksi: " + hint.heuristicIssues.slice(0, 8).join("; ");
       }
     }
-    const txt = await callLLM({ system: CASE_SYSTEM, user, maxTokens: 2500 });
+    const txt = await callLLM({ system: CASE_SYSTEM, user, maxTokens: 2500, retries: 1, timeoutMs: 55000 });
     return parseAgentJson(txt);
   },
 
@@ -109,7 +131,7 @@ export const CaseAnalysisAgent = {
 
     const user = `FAKTA:\n${factList}\n\nISU:\n${issueList}\n\nKANDIDAT PASAL:\n${JSON.stringify(candidates)}`;
 
-    const txt = await callLLM({ system, user, maxTokens: 1200 });
+    const txt = await callLLM({ system, user, maxTokens: 1200, retries: 0, timeoutMs: 35000 });
     const parsed = parseAgentJson(txt);
     const rankMap = {};
     for (const r of (parsed.rankings || [])) {
