@@ -11,16 +11,22 @@ import {
 import { useI18n } from "./i18n/I18nContext.jsx";
 
 /** Pemilih agen KNSL AI — terpisah dari provider LLM (Gemini/Groq). */
-export default function KnslAgentPicker({ compact, minimal }) {
+export default function KnslAgentPicker({ compact, minimal, allowedIds, defaultId }) {
   const { locale, t } = useI18n();
-  const [agentId, setAgentId] = useState(getKnslAgent);
+  const pool = allowedIds?.length
+    ? KNSL_CHAT_AGENTS.filter((a) => allowedIds.includes(a.id))
+    : KNSL_CHAT_AGENTS;
+  const initial = defaultId && pool.some((a) => a.id === defaultId) ? defaultId : getKnslAgent();
+  const [agentId, setAgentId] = useState(() => (
+    pool.some((a) => a.id === initial) ? initial : pool[0]?.id || getKnslAgent()
+  ));
 
   const onPick = (id) => {
     setKnslAgent(id);
     setAgentId(id);
   };
 
-  const cur = getKnslAgentConfig(agentId);
+  const cur = pool.find((a) => a.id === agentId) || getKnslAgentConfig(agentId);
   const label = getKnslAgentLabel(agentId, locale);
   const hint = getKnslAgentHint(agentId, locale);
 
@@ -32,7 +38,7 @@ export default function KnslAgentPicker({ compact, minimal }) {
       style={compact ? { marginTop: 0, fontSize: 12.5 } : undefined}
       aria-label={t("chat.knslAgentLabel")}
     >
-      {KNSL_CHAT_AGENTS.map((a) => (
+      {pool.map((a) => (
         <option key={a.id} value={a.id}>
           {locale === "en" ? a.labelEn : a.labelId}
         </option>

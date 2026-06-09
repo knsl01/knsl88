@@ -4,7 +4,7 @@
 
 import { AGENT_IDS } from "./registry.js";
 import { askLegalChat } from "./legalChatAgent.js";
-import { runLegalResearch } from "./legalResearchAgent.js";
+import { runLegalResearch, formatResearchResult } from "./legalResearchAgent.js";
 import { runLegalDrafting } from "./legalDraftingAgent.js";
 import { runLegalMemo } from "./legalMemoAgent.js";
 import { runComplianceReview } from "./complianceAgent.js";
@@ -14,40 +14,6 @@ import { CaseAnalysisAgent } from "../knslAiAgent.js";
 function lastUserText(messages) {
   const last = [...messages].reverse().find((m) => m.role === "user");
   return last?.content?.trim() || "";
-}
-
-function formatResearchResult(data) {
-  if (data.text) return data.text;
-  const lines = [];
-  if (data.issueRestated) lines.push(`**Isu:** ${data.issueRestated}`);
-  if (data.legalDomain) lines.push(`**Bidang:** ${data.legalDomain}`);
-  if (data.primarySources?.length) {
-    lines.push("\n**Sumber hukum:**");
-    for (const s of data.primarySources) {
-      lines.push(`- ${s.instrument} ${s.articles || ""} — ${s.relevance} (${s.confidence})`);
-    }
-  }
-  if (data.elementsOrRequirements?.length) {
-    lines.push("\n**Unsur / syarat:**");
-    for (const e of data.elementsOrRequirements) {
-      lines.push(`- **${e.label}:** ${e.description}`);
-    }
-  }
-  if (data.procedureNotes) lines.push(`\n**Prosedur:** ${data.procedureNotes}`);
-  if (data.practicalImplications?.length) {
-    lines.push("\n**Implikasi praktis:**");
-    data.practicalImplications.forEach((p) => lines.push(`- ${p}`));
-  }
-  if (data.uncertainties?.length) {
-    lines.push("\n**Ketidakpastian:**");
-    data.uncertainties.forEach((u) => lines.push(`- ${u}`));
-  }
-  if (data.suggestedNextSteps?.length) {
-    lines.push("\n**Langkah lanjut:**");
-    data.suggestedNextSteps.forEach((s) => lines.push(`- ${s}`));
-  }
-  lines.push("\n_Ini informasi riset hukum, bukan nasihat hukum resmi — konsultasikan advokat untuk keputusan konkret._");
-  return lines.join("\n");
 }
 
 function formatAnalysisResult(data) {
@@ -126,7 +92,7 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
     }
 
     case AGENT_IDS.RESEARCH: {
-      const data = await runLegalResearch({ query: text, format: "json", provider });
+      const data = await runLegalResearch({ query: text, format: "json", filter: "all", provider });
       return { text: formatResearchResult(data) };
     }
 

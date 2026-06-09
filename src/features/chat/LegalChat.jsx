@@ -8,6 +8,7 @@ import {
   saveChatMessages,
   clearChatMessages,
   buildWelcomeContent,
+  isChatCloudSyncActive,
 } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
 import KnslAgentPicker from "../../KnslAgentPicker.jsx";
@@ -207,6 +208,11 @@ export default function LegalChat() {
       <div className="legal-chat-header glass">
         <p className="legal-chat-disclaimer legal-chat-intro">
           {t("chat.disclaimer")}
+          {isChatCloudSyncActive() && (
+            <span style={{ display: "block", marginTop: 4, color: "var(--emerald-bright)", fontSize: 11 }}>
+              {t("chat.cloudSync")}
+            </span>
+          )}
         </p>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--desktop legal-chat-toolbar-pickers">

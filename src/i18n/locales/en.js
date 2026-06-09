@@ -154,6 +154,7 @@ export default {
     answeredViaAgent: " · Agent: {{agent}}",
     knslAgentLabel: "KNSL AI Agent",
     knslAgentRecommended: "Recommended for most questions",
+    cloudSync: "Chat history syncs to cloud (Supabase)",
     clearHistory: "Clear history",
     aiProviderDetail: "AI settings",
     errorContact: "Failed to reach AI.",
