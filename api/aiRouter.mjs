@@ -136,6 +136,7 @@ export async function routeAI(payload) {
   if (!user) throw new Error("Prompt user kosong");
 
   let provider = String(payload.provider || "auto").toLowerCase();
+  if (provider === "ollama" && isServerlessHost()) provider = "auto";
   if (provider === "auto") {
     const order = autoProviderOrder();
     const available = order.filter((p) => {

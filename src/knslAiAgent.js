@@ -5,7 +5,7 @@
  * Design: heuristic floor + AI enrichment; strict JSON; retry; no verdicts.
  * ========================================================================== */
 
-import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError } from "./aiProviders.js";
+import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError, normalizeAiProvider } from "./aiProviders.js";
 import {
   CASE_SYSTEM,
   CASE_SCHEMA,
@@ -59,10 +59,7 @@ async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
 /** Unified LLM call — routes to Gemini / Groq / Ollama / Claude via /api/ai. */
 export async function callLLM({ system, user, maxTokens = 2000, provider, retries = 2, timeoutMs }) {
   const ep = getAiProxyEndpoint();
-  const prov = provider || getAiProvider();
-  if (prov === "ollama" && typeof window !== "undefined" && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
-    throw new Error("Ollama hanya untuk dev lokal. Di knsl.tech pilih Google Gemini atau Groq.");
-  }
+  const prov = normalizeAiProvider(provider || getAiProvider());
   const body = { provider: prov, system: system || undefined, user, maxTokens };
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {

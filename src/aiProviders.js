@@ -10,18 +10,41 @@ export const AI_PROVIDERS = [
 
 const STORAGE_KEY = "knsl:ai-provider";
 
+export function isLocalOllamaHost(hostname) {
+  const host = String(
+    hostname ?? (typeof window !== "undefined" ? window.location?.hostname : "")
+  ).toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".localhost");
+}
+
+export function normalizeAiProvider(id) {
+  const selected = AI_PROVIDERS.some((p) => p.id === id) ? id : "auto";
+  if (selected === "ollama" && !isLocalOllamaHost()) return "auto";
+  return selected;
+}
+
+export function isAiProviderSelectable(id) {
+  return normalizeAiProvider(id) === id;
+}
+
 export function getAiProvider() {
+  let selected = "auto";
   try {
     const v = localStorage.getItem(STORAGE_KEY);
-    if (v && AI_PROVIDERS.some((p) => p.id === v)) return v;
+    if (v && AI_PROVIDERS.some((p) => p.id === v)) selected = v;
   } catch { /* ignore */ }
-  return "auto";
+  const normalized = normalizeAiProvider(selected);
+  if (normalized !== selected) {
+    try { localStorage.setItem(STORAGE_KEY, normalized); } catch { /* ignore */ }
+  }
+  if (typeof window !== "undefined") window.__KNSL_AI_PROVIDER__ = normalized;
+  return normalized;
 }
 
 export function setAiProvider(id) {
-  if (!AI_PROVIDERS.some((p) => p.id === id)) return;
-  try { localStorage.setItem(STORAGE_KEY, id); } catch { /* ignore */ }
-  if (typeof window !== "undefined") window.__KNSL_AI_PROVIDER__ = id;
+  const normalized = normalizeAiProvider(id);
+  try { localStorage.setItem(STORAGE_KEY, normalized); } catch { /* ignore */ }
+  if (typeof window !== "undefined") window.__KNSL_AI_PROVIDER__ = normalized;
 }
 
 export function getAiProxyEndpoint() {

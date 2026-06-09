@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel } from "./aiProviders.js";
+import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel, isAiProviderSelectable } from "./aiProviders.js";
 
 /** Pemilih provider AI — native select agar tidak tertutup overflow parent. */
 export default function AiProviderPicker({ compact, minimal }) {
   const [provider, setProvider] = useState(getAiProvider);
   const [last, setLast] = useState(getLastAiMeta);
+  const options = AI_PROVIDERS.map((p) => ({ ...p, selectable: isAiProviderSelectable(p.id) }));
 
   useEffect(() => {
     const t = setInterval(() => setLast(getLastAiMeta()), 1500);
@@ -14,10 +15,10 @@ export default function AiProviderPicker({ compact, minimal }) {
 
   const onPick = (id) => {
     setAiProvider(id);
-    setProvider(id);
+    setProvider(getAiProvider());
   };
 
-  const cur = AI_PROVIDERS.find((p) => p.id === provider) || AI_PROVIDERS[0];
+  const cur = options.find((p) => p.id === provider) || options[0];
 
   const selectEl = (
     <select
@@ -27,9 +28,9 @@ export default function AiProviderPicker({ compact, minimal }) {
       style={compact ? { marginTop: 0, fontSize: 12.5 } : undefined}
       aria-label="Provider AI"
     >
-      {AI_PROVIDERS.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.label}
+      {options.map((p) => (
+        <option key={p.id} value={p.id} disabled={!p.selectable}>
+          {p.label}{p.selectable ? "" : " (lokal saja)"}
         </option>
       ))}
     </select>
