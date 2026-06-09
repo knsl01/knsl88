@@ -10,6 +10,7 @@ import { runLegalMemo } from "./legalMemoAgent.js";
 import { runComplianceReview } from "./complianceAgent.js";
 import { routeIntent, runOrchestratedPipeline, synthesizeResults } from "./orchestrator.js";
 import { CaseAnalysisAgent } from "../knslAiAgent.js";
+import { heuristicLegalChat } from "./heuristicLegalChat.js";
 
 function lastUserText(messages) {
   const last = [...messages].reverse().find((m) => m.role === "user");
@@ -81,6 +82,22 @@ function formatComplianceResult(data) {
 export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
   const text = lastUserText(messages);
   if (!text) throw new Error("Pertanyaan kosong.");
+
+  try {
+    return await runKnslChatAgent({ agentId, messages, provider });
+  } catch (e) {
+    // Semua provider AI gagal/offline → jangan tampilkan error; jawab
+    // secara heuristik dari basis pasal KNSL agar chat tetap berguna.
+    const fallback = heuristicLegalChat({ messages });
+    if (fallback) {
+      return { text: fallback, meta: { heuristic: true, aiError: String((e && e.message) || e) } };
+    }
+    throw e;
+  }
+}
+
+async function runKnslChatAgent({ agentId, messages, provider }) {
+  const text = lastUserText(messages);
 
   switch (agentId) {
     case "orchestrator": {
