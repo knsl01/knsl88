@@ -162,7 +162,7 @@ export default function LegalChat() {
       }
       if (note) setAiNote(note);
     } catch (e) {
-      const errMsg = getLastAiError() || e.message || t("chat.errorContact");
+      const errMsg = e.message || getLastAiError() || t("chat.errorContact");
       setError("");
       const errAssistant = {
         id: msgId(),

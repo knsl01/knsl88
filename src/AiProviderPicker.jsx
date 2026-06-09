@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel, isAiProviderSelectable, getAiServerStatus } from "./aiProviders.js";
+import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getLastAiError, getProviderLabel, isAiProviderSelectable, getAiServerStatus } from "./aiProviders.js";
 
 /** Pemilih provider AI — native select agar tidak tertutup overflow parent. */
 export default function AiProviderPicker({ compact, minimal }) {
   const [provider, setProvider] = useState(getAiProvider);
   const [last, setLast] = useState(getLastAiMeta);
+  const [lastError, setLastError] = useState(getLastAiError);
   const [serverStatus, setServerStatus] = useState(null);
   const options = AI_PROVIDERS.map((p) => ({ ...p, selectable: isAiProviderSelectable(p.id) }));
 
   useEffect(() => {
-    const t = setInterval(() => setLast(getLastAiMeta()), 1500);
+    const t = setInterval(() => {
+      setLast(getLastAiMeta());
+      setLastError(getLastAiError());
+    }, 1500);
     return () => clearInterval(t);
   }, []);
 
@@ -29,15 +33,17 @@ export default function AiProviderPicker({ compact, minimal }) {
 
   const cur = options.find((p) => p.id === provider) || options[0];
   const serverProvider = serverStatus?.providers?.find((p) => p.id === provider);
-  const groqProvider = serverStatus?.providers?.find((p) => p.id === "groq");
   const statusText = serverStatus
-    ? provider === "groq"
-      ? (groqProvider?.configured ? "Server membaca GROQ_API_KEY" : "Server belum membaca GROQ_API_KEY")
-      : serverStatus.autoProvider
+    ? provider === "auto"
+      ? serverStatus.autoProvider
         ? `Auto server: ${getProviderLabel(serverStatus.autoProvider)}`
         : "Server belum membaca API key Gemini/Groq"
+      : provider === "ollama"
+        ? (serverProvider?.configured ? "Ollama lokal tersedia" : "Ollama hanya untuk localhost")
+        : (serverProvider?.configured ? `Server membaca ${serverProvider.keyEnv}` : `Server belum membaca ${serverProvider?.keyEnv || "API key"}`)
     : "";
-  const statusOk = provider === "groq" ? !!groqProvider?.configured : !!serverStatus?.autoProvider || !!serverProvider?.configured;
+  const statusOk = provider === "auto" ? !!serverStatus?.autoProvider : !!serverProvider?.configured;
+  const connectedMeta = lastError ? null : last;
 
   const selectEl = (
     <select
@@ -56,13 +62,13 @@ export default function AiProviderPicker({ compact, minimal }) {
   );
 
   if (minimal) {
-    const status = last
-      ? `Terhubung: ${getProviderLabel(last.provider)} · ${last.model}`
+    const status = connectedMeta
+      ? `Terhubung: ${getProviderLabel(connectedMeta.provider)} · ${connectedMeta.model}`
       : cur.hint;
     return (
       <div className="ai-provider-minimal">
         {selectEl}
-        {last && (
+        {connectedMeta && (
           <span className="ai-provider-minimal-dot" title={status} aria-label={status} />
         )}
       </div>
@@ -83,9 +89,9 @@ export default function AiProviderPicker({ compact, minimal }) {
             {statusText}
           </p>
         )}
-        {last && (
+        {connectedMeta && (
           <p style={{ fontSize: 10.5, color: "var(--emerald-bright)", margin: 0, lineHeight: 1.4 }}>
-            ✓ Terhubung: {getProviderLabel(last.provider)} · {last.model}
+            ✓ Terhubung: {getProviderLabel(connectedMeta.provider)} · {connectedMeta.model}
           </p>
         )}
       </div>
@@ -105,9 +111,9 @@ export default function AiProviderPicker({ compact, minimal }) {
           {statusText}
         </p>
       )}
-      {last && (
+      {connectedMeta && (
         <p style={{ fontSize: 10.5, color: "var(--emerald-bright)", margin: "6px 0 0" }}>
-          ✓ Terhubung: {getProviderLabel(last.provider)} · {last.model}
+          ✓ Terhubung: {getProviderLabel(connectedMeta.provider)} · {connectedMeta.model}
         </p>
       )}
     </div>

@@ -43,7 +43,7 @@ async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) {
       const raw = data.error || `AI HTTP ${resp.status}`;
-      throw new Error(formatAiError(raw, prov));
+      throw new Error(raw);
     }
     return data;
   } catch (e) {
@@ -56,11 +56,21 @@ async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
   }
 }
 
+function shouldRetryAiError(raw) {
+  const m = String(raw || "").toLowerCase();
+  if (m.includes("api key") || m.includes("invalid") || m.includes("permission")) return false;
+  if (m.includes("quota") || m.includes("exceeded") || m.includes("resource_exhausted") || m.includes("rate limit")) return false;
+  if (m.includes("belum di-set") || m.includes("tidak ada provider")) return false;
+  return true;
+}
+
 /** Unified LLM call — routes to Gemini / Groq / Ollama / Claude via /api/ai. */
 export async function callLLM({ system, user, maxTokens = 2000, provider, retries = 2, timeoutMs }) {
   const ep = getAiProxyEndpoint();
   const prov = normalizeAiProvider(provider || getAiProvider());
   const body = { provider: prov, system: system || undefined, user, maxTokens };
+  setLastAiError(null);
+  setLastAiMeta(null);
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -71,9 +81,15 @@ export async function callLLM({ system, user, maxTokens = 2000, provider, retrie
       setLastAiError(null);
       return txt;
     } catch (e) {
-      lastErr = e;
-      setLastAiError(formatAiError(e.message || e, prov));
-      if (attempt < retries) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      const formatted = formatAiError(e.message || e, prov);
+      lastErr = new Error(formatted);
+      setLastAiError(formatted);
+      setLastAiMeta(null);
+      if (attempt < retries && shouldRetryAiError(e.message || e)) {
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      } else {
+        break;
+      }
     }
   }
   throw lastErr;
