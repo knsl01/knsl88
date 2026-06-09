@@ -153,6 +153,8 @@ export default {
     answeredVia: "Answered via {{provider}}{{model}}",
     answeredViaAgent: " · Agent: {{agent}}",
     knslAgentLabel: "KNSL AI Agent",
+    knslAgentEnable: "Enable KNSL agent routing",
+    knslAgentOffHint: "Off - module uses default AI only (no multi-agent routing).",
     knslAgentRecommended: "Recommended for most questions",
     cloudSync: "Chat history syncs to cloud (Supabase)",
     clearHistory: "Clear history",
