@@ -16,6 +16,17 @@ function lastUserText(messages) {
   return last?.content?.trim() || "";
 }
 
+function formatConversationForRouting(messages) {
+  return messages
+    .slice(-10)
+    .map((m) => {
+      const label = m.role === "user" ? "PENGGUNA" : "ASISTEN";
+      return `[${label}]\n${String(m.content || "").trim()}`;
+    })
+    .filter((entry) => !entry.endsWith("\n"))
+    .join("\n\n---\n\n");
+}
+
 function formatAnalysisResult(data) {
   const lines = ["**Hasil analisa perkara**\n"];
   if (data.facts?.length) {
@@ -66,7 +77,8 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
 
   switch (agentId) {
     case "orchestrator": {
-      const route = await routeIntent({ text, provider });
+      const routingText = formatConversationForRouting(messages) || text;
+      const route = await routeIntent({ text: routingText, provider });
       if (route.needsClarification) {
         const qs = (route.clarifyingQuestions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
         return {
@@ -74,7 +86,7 @@ export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
           meta: { route },
         };
       }
-      const results = await runOrchestratedPipeline({ text, route, provider });
+      const results = await runOrchestratedPipeline({ text: routingText, messages, route, provider });
       if (results.status === "clarification_needed") {
         const qs = (results.questions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
         return { text: `**Klarifikasi diperlukan:**\n\n${qs}`, meta: { route: results.route } };

@@ -1,8 +1,9 @@
 /**
  * Document scan engine — image/PDF intake, enhancement, deskew, OCR, export.
- * Client-side only; vision OCR uses /api/claude proxy.
+ * Client-side only; vision OCR uses the unified /api/ai proxy.
  */
 
+import { getAiProvider, getAiProxyEndpoint } from "../../aiProviders.js";
 import {
   loadScript, withTimeout, loadImage, dataUrlParts, downloadBlob, escapeHtml, newPageId,
 } from "./utils.js";
@@ -446,27 +447,28 @@ export async function buildPdf(images, name) {
 }
 
 export async function ocrVision(images, onProgress) {
-  const ep = (typeof window !== "undefined" && window.__CLAUDE_PROXY__) || "/api/claude";
+  const ep = getAiProxyEndpoint();
   let out = "";
   const batchSize = 2;
   let done = 0;
   for (let i = 0; i < images.length; i += batchSize) {
     const batch = images.slice(i, i + batchSize);
-    const content = [];
+    const visionImages = [];
     batch.forEach((im) => {
       const p = dataUrlParts(im.dataUrl);
-      if (p.data) content.push({ type: "image", source: { type: "base64", media_type: p.media_type, data: p.data } });
+      if (p.data) visionImages.push({ mimeType: p.media_type, data: p.data });
     });
-    content.push({ type: "text", text: LEGAL_OCR_PROMPT });
     const body = {
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2400,
-      messages: [{ role: "user", content }],
+      provider: getAiProvider(),
+      user: LEGAL_OCR_PROMPT,
+      images: visionImages,
+      maxTokens: 2400,
+      responseFormat: "text",
     };
     const resp = await fetch(ep, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!resp.ok) throw new Error("AI Vision OCR HTTP " + resp.status);
     const data = await resp.json();
-    out += (data.content || []).map((b) => (b.type === "text" ? b.text : "")).join("") + "\n\n";
+    out += String(data.text || "") + "\n\n";
     done += batch.length;
     if (onProgress) onProgress(Math.round((done / images.length) * 100));
   }
@@ -530,12 +532,14 @@ export function exportWord(text, name) {
 export async function runSmartPipeline(pages, { mode, onStage, onProgress }) {
   const stage = (label, pct) => { if (onStage) onStage(label, pct); };
   let working = [...pages];
+  let corrected = 0;
 
   stage("correct", 5);
   for (let i = 0; i < working.length; i++) {
     try {
       const r = await correctPage(working[i]);
       working[i] = { ...working[i], dataUrl: r.dataUrl, w: r.w, h: r.h, corrected: true, quality: r.quality };
+      corrected++;
     } catch { /* keep original */ }
     if (onProgress) onProgress(Math.round(((i + 1) / working.length) * 30));
   }
