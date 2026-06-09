@@ -89,9 +89,22 @@ Jika memilih **Otomatis**, server mencoba urutan:
 1. Gemini (jika `GEMINI_API_KEY` ada)
 2. Groq (jika `GROQ_API_KEY` ada)
 3. Ollama (lokal)
-4. Claude (jika `ANTHROPIC_API_KEY` ada)
 
-Tanpa key apa pun, hanya Ollama lokal yang bisa dipakai.
+Claude tidak dipakai otomatis karena berbayar; pilih Claude eksplisit bila memang memasang `ANTHROPIC_API_KEY`.
+
+Tanpa key apa pun, hanya Ollama lokal yang bisa dipakai di dev. Di Vercel/knsl.tech, set minimal `GEMINI_API_KEY` atau `GROQ_API_KEY`.
+
+---
+
+## Hardening endpoint `/api/ai`
+
+Endpoint AI membaca key server, jadi batasi akses produksi:
+
+- `AI_ALLOWED_ORIGINS=https://knsl.tech,https://www.knsl.tech` — origin browser yang diizinkan. Tambahkan domain preview bila perlu.
+- `AI_RATE_LIMIT_MAX=60` dan `AI_RATE_LIMIT_WINDOW_MS=60000` — rate limit per IP per window.
+- `AI_MAX_BODY_BYTES=8388608` — batas payload, terutama untuk OCR Vision berbasis gambar.
+
+Request tanpa header `Origin` tetap diizinkan untuk health check/server-to-server. Localhost selalu diizinkan untuk development.
 
 ---
 
@@ -103,5 +116,5 @@ Matikan toggle AI — **mesin heuristik tetap jalan penuh** (offline, gratis, ta
 
 ## Endpoint teknis
 
-- Baru: `POST /api/ai` — body `{ provider, system, user, maxTokens }`
+- Baru: `POST /api/ai` — body `{ provider, system, user, maxTokens, responseFormat, images }`
 - Legacy: `POST /api/claude` — masih didukung untuk kompatibilitas

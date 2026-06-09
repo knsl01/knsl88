@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
 
+import {
+  checkBodySize,
+  checkRateLimit,
+  isAllowedOrigin,
+  resetRateLimitForTests,
+} from "../api/aiGuards.mjs";
 import { routeAI } from "../api/aiRouter.mjs";
 import { dispatchKnslChatAgent } from "../src/agents/chatDispatcher.js";
 
@@ -25,6 +31,39 @@ async function withMockFetch(mock, fn) {
     globalThis.fetch = originalFetch;
   }
 }
+
+const previousGuardEnv = {
+  AI_ALLOWED_ORIGINS: process.env.AI_ALLOWED_ORIGINS,
+  AI_RATE_LIMIT_MAX: process.env.AI_RATE_LIMIT_MAX,
+  AI_RATE_LIMIT_WINDOW_MS: process.env.AI_RATE_LIMIT_WINDOW_MS,
+  AI_MAX_BODY_BYTES: process.env.AI_MAX_BODY_BYTES,
+};
+
+process.env.AI_ALLOWED_ORIGINS = "https://preview.knsl.tech";
+assert.equal(isAllowedOrigin("https://knsl.tech"), true);
+assert.equal(isAllowedOrigin("https://preview.knsl.tech"), true);
+assert.equal(isAllowedOrigin("https://evil.example"), false);
+assert.equal(isAllowedOrigin("http://localhost:5173"), true);
+
+process.env.AI_MAX_BODY_BYTES = "12";
+assert.equal(checkBodySize({ body: { user: "ok" }, headers: {} }).ok, false);
+assert.equal(checkBodySize({ body: "small", headers: {} }).ok, true);
+
+resetRateLimitForTests();
+process.env.AI_RATE_LIMIT_MAX = "2";
+process.env.AI_RATE_LIMIT_WINDOW_MS = "1000";
+const req = { headers: { "x-forwarded-for": "203.0.113.8" } };
+assert.equal(checkRateLimit(req, 1000).ok, true);
+assert.equal(checkRateLimit(req, 1100).ok, true);
+const blocked = checkRateLimit(req, 1200);
+assert.equal(blocked.ok, false);
+assert.equal(blocked.retryAfter, 1);
+
+for (const [key, value] of Object.entries(previousGuardEnv)) {
+  if (value === undefined) delete process.env[key];
+  else process.env[key] = value;
+}
+resetRateLimitForTests();
 
 process.env.GEMINI_API_KEY = "test-gemini-key";
 delete process.env.GROQ_API_KEY;
