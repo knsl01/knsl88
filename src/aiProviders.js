@@ -1,11 +1,11 @@
 /* Client-side AI provider config & unified LLM call. */
 
 export const AI_PROVIDERS = [
-  { id: "auto", label: "Otomatis (gratis dulu)", free: true, hint: "Coba Gemini → Groq → Ollama → Claude" },
-  { id: "gemini", label: "Google Gemini", free: true, hint: "Gratis terbatas/hari — aistudio.google.com/apikey. Kuota habis? Ganti ke Groq." },
-  { id: "groq", label: "Groq (Llama)", free: true, hint: "Gratis — API key di console.groq.com" },
-  { id: "ollama", label: "Ollama (lokal)", free: true, hint: "100% gratis — jalankan: ollama pull llama3.2" },
-  { id: "claude", label: "Claude (Anthropic)", free: false, hint: "Berbayar per token" },
+  { id: "auto", label: "Otomatis", free: true, hint: "Prioritas: Gemini → Groq → Ollama → Claude" },
+  { id: "gemini", label: "Google Gemini", free: true, hint: "API key: aistudio.google.com/apikey" },
+  { id: "groq", label: "Groq (Llama)", free: true, hint: "API key: console.groq.com" },
+  { id: "ollama", label: "Ollama (lokal)", free: true, hint: "Model lokal — ollama pull llama3.2" },
+  { id: "claude", label: "Claude (Anthropic)", free: false, hint: "API key Anthropic di environment server" },
 ];
 
 const STORAGE_KEY = "knsl:ai-provider";
