@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
-import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
+import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, resolveAiProvider } from "./aiProviders.js";
 import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm } from "./services/pasalSearch.js";
 import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
@@ -900,7 +900,7 @@ function Analysis({ seed }) {
             const heur = runPipeline(input, flt);
             heur.source = "heuristic";
             heur.aiStatus = "error";
-            heur.aiError = formatAiError(e.message || e, getAiProvider());
+            heur.aiError = formatAiError(e.message || e, resolveAiProvider());
             setData(heur);
             setTab("facts");
             setActiveHistoryId(null);
@@ -1055,7 +1055,7 @@ function Analysis({ seed }) {
                       {" · "}Invarian {data.audit.passed}/{data.audit.total}
                     </>
                   ) : data.aiStatus === "error" ? (
-                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />{formatAiError(data.aiError || getLastAiError(), getAiProvider())} <span style={{ color: "var(--muted)" }}>(hasil heuristik ditampilkan)</span></>
+                    <><AlertTriangle size={13} style={{ color: "#ff9a8b", verticalAlign: "middle", marginRight: 6 }} />{formatAiError(data.aiError || getLastAiError(), resolveAiProvider())} <span style={{ color: "var(--muted)" }}>(hasil heuristik ditampilkan)</span></>
                   ) : data.aiStatus === "fallback" ? (
                     <><Info size={13} className="gold-text" style={{ verticalAlign: "middle", marginRight: 6 }} />{data.aiNote || "AI tidak meningkatkan hasil — pakai heuristik."}</>
                   ) : data.aiStatus === "off" ? (
@@ -1273,11 +1273,11 @@ function Research({ seed }) {
     setAiBusy(true);
     setAiErr("");
     try {
-      const data = await runLegalResearch({ query: q, filter, format: "json", provider: getAiProvider() });
+      const data = await runLegalResearch({ query: q, filter, format: "json", provider: resolveAiProvider() });
       setAiText(formatResearchResult(data));
       if (data.retrievedPasal?.length && !res.length) setRes(data.retrievedPasal);
     } catch (e) {
-      setAiErr(formatAiError(e.message || e, getAiProvider()));
+      setAiErr(formatAiError(e.message || e, resolveAiProvider()));
     } finally {
       setAiBusy(false);
     }
@@ -1886,12 +1886,12 @@ function Drafting() {
         docType: doc.label,
         context: fieldContext,
         format: "prose",
-        provider: getAiProvider(),
+        provider: resolveAiProvider(),
       });
       setAiDraft(data.body || "");
       setPreviewMode("ai");
     } catch (e) {
-      setAiErr(formatAiError(e.message || e, getAiProvider()));
+      setAiErr(formatAiError(e.message || e, resolveAiProvider()));
     } finally {
       setAiBusy(false);
     }
@@ -2777,7 +2777,7 @@ function ContractReview() {
         ctx, usedAI: aiHits > 0, aiHits, aiError: crResult.aiError,
         clauses: reviewed, risk, dataPoints,
       };
-      if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, getAiProvider()) + " (hasil heuristik tetap ditampilkan)");
+      if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, resolveAiProvider()) + " (hasil heuristik tetap ditampilkan)");
       await crSaveRecord(record);
       await crAudit("analyze_contract", record.name + " · skor " + risk.score);
       await persistContractReview(record);

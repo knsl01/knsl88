@@ -25,17 +25,17 @@ export function getAiProvider() {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v && AI_PROVIDERS.some((p) => p.id === v)) {
-      if (v === "ollama" && !isLocalDevHost()) return "auto";
+      if (v === "ollama" && !isLocalDevHost()) return "groq";
       return v;
     }
   } catch { /* ignore */ }
-  return "auto";
+  return isLocalDevHost() ? "auto" : "groq";
 }
 
-/** Provider yang benar-benar dikirim ke /api/ai (hindari Ollama nyangkut di localStorage). */
+/** Provider yang benar-benar dikirim ke /api/ai (hindari Ollama nyangkut di cloud). */
 export function resolveAiProvider(explicit) {
   const raw = explicit || getAiProvider();
-  if (raw === "ollama" && !isLocalDevHost()) return "auto";
+  if (!isLocalDevHost() && raw === "ollama") return "groq";
   return raw;
 }
 
@@ -78,21 +78,28 @@ export function getLastAiError() {
 
 /** Terjemahkan error API ke pesan yang mudah dipahami (ID). */
 export function formatAiError(raw, providerId) {
-  const m = String(raw || "").toLowerCase();
+  let text = String(raw || "").trim();
+  // Lepas prefix [groq] dari server agar tidak dobel-format
+  text = text.replace(/^\[(gemini|groq|claude|ollama|auto)\]\s*/i, "");
+  const m = text.toLowerCase();
   const selected = resolveAiProvider(providerId);
   const name = getProviderLabel(selected);
+
   if (m.includes("quota") || m.includes("exceeded") || m.includes("resource_exhausted") || m.includes("rate limit")) {
     const alt = selected === "groq" ? "Gemini" : "Groq";
     return `Kuota ${name} habis (limit gratis harian/bulanan). Solusi: (1) tunggu reset kuota ±24 jam, (2) ganti ke ${alt} di dropdown Provider AI + pasang API key di Vercel, atau (3) aktifkan billing di dashboard provider.`;
   }
-  if (m.includes("api key") || m.includes("invalid") || m.includes("permission")) {
-    return `API key ${name} tidak valid atau tidak punya izin. Buat key baru di dashboard provider, update di Vercel Environment Variables, lalu redeploy.`;
+  if (m.includes("belum di-set") || m.includes("api key") || m.includes("invalid") || m.includes("permission") || m.includes("unauthorized")) {
+    return `API key ${name} belum di-set atau tidak valid. Buka Vercel → Project → Settings → Environment Variables → tambahkan ${selected === "groq" ? "GROQ_API_KEY" : selected === "gemini" ? "GEMINI_API_KEY" : "API key provider"}, lalu Redeploy.`;
   }
-  if ((m.includes("ollama") || m.includes("econnrefused") || m.includes("11434")) && selected !== "ollama") {
-    return `Provider ${name} gagal terhubung. Pastikan API key ${name} sudah di-set di Vercel lalu redeploy. (Pesan server menyebut Ollama — abaikan jika Anda memilih ${name}.)`;
+  if (selected !== "ollama" && (m.includes("ollama") || m.includes("11434"))) {
+    return `Groq/Gemini gagal (${name}). Pastikan ${selected === "groq" ? "GROQ_API_KEY" : "GEMINI_API_KEY"} sudah di Vercel dan redeploy — abaikan pesan Ollama (bukan provider yang Anda pilih).`;
+  }
+  if (m.includes("econnrefused") || m.includes("failed to fetch") || m.includes("network")) {
+    return `Tidak dapat menghubungi ${name}. Periksa koneksi internet dan pastikan API key ${name} sudah di-set di Vercel lalu redeploy.`;
   }
   if (m.includes("ollama") || m.includes("11434")) {
-    return "Ollama tidak jalan di server cloud. Untuk knsl.tech pilih Gemini atau Groq. Ollama hanya untuk dev lokal (ollama serve).";
+    return "Ollama hanya untuk dev lokal. Di knsl.tech pilih Groq atau Gemini.";
   }
-  return String(raw || "AI gagal — cek provider dan API key.");
+  return text || "AI gagal — cek provider dan API key di Vercel.";
 }

@@ -36,18 +36,16 @@ async function fetchWithTimeout(url, options = {}, ms = FETCH_TIMEOUT_MS) {
   }
 }
 
+/** Ollama hanya via provider eksplisit — tidak pernah di rantai `auto` (hindari error palsu di Vercel). */
 function autoProviderOrder() {
-  const order = ["gemini", "groq", "claude"];
-  if (!isServerlessHost()) order.splice(2, 0, "ollama");
-  return order;
+  return ["gemini", "groq", "claude"];
 }
 
 function pickAutoProvider() {
   if (process.env.GEMINI_API_KEY) return "gemini";
   if (process.env.GROQ_API_KEY) return "groq";
   if (process.env.ANTHROPIC_API_KEY) return "claude";
-  if (!isServerlessHost()) return "ollama";
-  throw new Error("GEMINI_API_KEY atau GROQ_API_KEY belum di-set di Vercel. Ollama tidak tersedia di server cloud.");
+  throw new Error("GEMINI_API_KEY atau GROQ_API_KEY belum di-set di Vercel. Tambahkan di Environment Variables lalu redeploy.");
 }
 
 async function callGemini({ system, user, maxTokens, model, responseFormat = "text" }) {
@@ -150,27 +148,37 @@ export async function routeAI(payload) {
     const order = autoProviderOrder();
     const available = order.filter((p) => {
       const meta = PROVIDER_META[p];
-      if (!meta.keyEnv) return !isServerlessHost();
-      return !!process.env[meta.keyEnv];
+      return meta.keyEnv ? !!process.env[meta.keyEnv] : false;
     });
     if (!available.length) {
       throw new Error("Tidak ada provider AI yang dikonfigurasi. Set GEMINI_API_KEY atau GROQ_API_KEY di Vercel lalu redeploy.");
     }
-    let lastErr;
+    const errors = [];
     for (const p of available) {
       try {
         const out = await CALLERS[p](callOpts);
         return { ...out, requestedProvider };
       }
-      catch (e) { lastErr = e; }
+      catch (e) {
+        errors.push(`${p}: ${e?.message || e}`);
+      }
     }
-    throw lastErr || new Error("Tidak ada provider AI yang tersedia");
+    throw new Error(errors.join(" | ") || "Tidak ada provider AI yang tersedia");
+  }
+
+  if (provider === "ollama" && isServerlessHost()) {
+    throw new Error("Ollama tidak tersedia di Vercel. Pilih Groq atau Gemini.");
   }
 
   const fn = CALLERS[provider];
   if (!fn) throw new Error(`Provider tidak dikenal: ${provider}`);
-  const out = await fn(callOpts);
-  return { ...out, requestedProvider };
+  try {
+    const out = await fn(callOpts);
+    return { ...out, requestedProvider };
+  } catch (e) {
+    const msg = String(e?.message || e);
+    throw new Error(`[${provider}] ${msg}`);
+  }
 }
 
 export function listAvailableProviders() {

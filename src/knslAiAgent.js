@@ -50,7 +50,9 @@ async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) {
       const raw = data.error || `AI HTTP ${resp.status}`;
-      throw new Error(formatAiError(raw, prov));
+      const err = new Error(raw);
+      err.requestedProvider = data.requestedProvider || prov;
+      throw err;
     }
     return data;
   } catch (e) {
@@ -91,11 +93,11 @@ export async function callLLM({
       return txt;
     } catch (e) {
       lastErr = e;
-      setLastAiError(formatAiError(e.message || e, prov));
+      setLastAiError(formatAiError(e.message || e, e.requestedProvider || prov));
       if (attempt < retries) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
     }
   }
-  throw lastErr;
+  throw new Error(formatAiError(lastErr?.message || lastErr, prov));
 }
 
 /** @deprecated use callLLM */

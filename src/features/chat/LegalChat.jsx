@@ -13,7 +13,7 @@ import {
 } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
 import KnslAgentPicker from "../../KnslAgentPicker.jsx";
-import { getAiProvider } from "../../aiProviders.js";
+import { resolveAiProvider, getAiProvider } from "../../aiProviders.js";
 import { getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useLocalUser } from "../../hooks/useLocalUser.js";
@@ -147,7 +147,7 @@ export default function LegalChat() {
       const { text: reply } = await dispatchKnslChatAgent({
         agentId,
         messages: next,
-        provider: getAiProvider(),
+        provider: resolveAiProvider(),
       });
       const assistantMsg = {
         id: msgId(),
