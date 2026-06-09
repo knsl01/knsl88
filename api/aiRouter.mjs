@@ -144,7 +144,8 @@ export async function routeAI(payload) {
   if (!user) throw new Error("Prompt user kosong");
 
   const callOpts = { system, user, maxTokens, model, responseFormat };
-  let provider = String(payload.provider || "auto").toLowerCase();
+  const requestedProvider = String(payload.provider || "auto").toLowerCase();
+  let provider = requestedProvider;
   if (provider === "auto") {
     const order = autoProviderOrder();
     const available = order.filter((p) => {
@@ -157,7 +158,10 @@ export async function routeAI(payload) {
     }
     let lastErr;
     for (const p of available) {
-      try { return await CALLERS[p](callOpts); }
+      try {
+        const out = await CALLERS[p](callOpts);
+        return { ...out, requestedProvider };
+      }
       catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("Tidak ada provider AI yang tersedia");
@@ -165,7 +169,8 @@ export async function routeAI(payload) {
 
   const fn = CALLERS[provider];
   if (!fn) throw new Error(`Provider tidak dikenal: ${provider}`);
-  return fn(callOpts);
+  const out = await fn(callOpts);
+  return { ...out, requestedProvider };
 }
 
 export function listAvailableProviders() {

@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { AI_PROVIDERS, getAiProvider, setAiProvider, getLastAiMeta, getProviderLabel } from "./aiProviders.js";
+import {
+  getVisibleAiProviders,
+  getAiProvider,
+  setAiProvider,
+  getLastAiMeta,
+  getProviderLabel,
+  resolveAiProvider,
+} from "./aiProviders.js";
 
 /** Pemilih provider AI — native select agar tidak tertutup overflow parent. */
 export default function AiProviderPicker({ compact, minimal }) {
-  const [provider, setProvider] = useState(getAiProvider);
+  const pool = getVisibleAiProviders();
+  const [provider, setProvider] = useState(() => resolveAiProvider(getAiProvider()));
   const [last, setLast] = useState(getLastAiMeta);
 
   useEffect(() => {
@@ -15,9 +23,10 @@ export default function AiProviderPicker({ compact, minimal }) {
   const onPick = (id) => {
     setAiProvider(id);
     setProvider(id);
+    setLast(null);
   };
 
-  const cur = AI_PROVIDERS.find((p) => p.id === provider) || AI_PROVIDERS[0];
+  const cur = pool.find((p) => p.id === provider) || pool[0];
 
   const selectEl = (
     <select
@@ -27,7 +36,7 @@ export default function AiProviderPicker({ compact, minimal }) {
       style={compact ? { marginTop: 0, fontSize: 12.5 } : undefined}
       aria-label="Provider AI"
     >
-      {AI_PROVIDERS.map((p) => (
+      {pool.map((p) => (
         <option key={p.id} value={p.id}>
           {p.label}
         </option>

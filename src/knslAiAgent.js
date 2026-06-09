@@ -5,7 +5,14 @@
  * Design: heuristic floor + AI enrichment; strict JSON; retry; no verdicts.
  * ========================================================================== */
 
-import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError } from "./aiProviders.js";
+import {
+  resolveAiProvider,
+  isLocalDevHost,
+  getAiProxyEndpoint,
+  setLastAiMeta,
+  setLastAiError,
+  formatAiError,
+} from "./aiProviders.js";
 import {
   CASE_SYSTEM,
   CASE_SCHEMA,
@@ -67,8 +74,8 @@ export async function callLLM({
   responseFormat = "text",
 }) {
   const ep = getAiProxyEndpoint();
-  const prov = provider || getAiProvider();
-  if (prov === "ollama" && typeof window !== "undefined" && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
+  const prov = resolveAiProvider(provider);
+  if (prov === "ollama" && !isLocalDevHost()) {
     throw new Error("Ollama hanya untuk dev lokal. Di knsl.tech pilih Google Gemini atau Groq.");
   }
   const fmt = String(responseFormat || "text").toLowerCase() === "json" ? "json" : "text";
