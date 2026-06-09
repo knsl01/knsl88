@@ -2568,7 +2568,7 @@ function crReportHTML(rec) {
     <tr><td><b>Dokumen</b></td><td>: ${crEsc(rec.name)}</td></tr>
     <tr><td><b>Perspektif tinjauan</b></td><td>: ${crEsc(rec.ctx || "Pihak peninjau")}</td></tr>
     <tr><td><b>Jumlah klausul</b></td><td>: ${rec.clauses.length}</td></tr>
-    <tr><td><b>Mesin</b></td><td>: ${rec.usedAI ? "AI Counsel (Claude) + heuristik" : "Heuristik deterministik"}</td></tr>
+    <tr><td><b>Mesin</b></td><td>: ${rec.usedAI ? "AI Counsel multi-provider + heuristik" : "Heuristik deterministik"}</td></tr>
   </table>
   <h2>1. Ringkasan Eksekutif</h2>
   <div class="scorebox"><div class="n">${r.score}</div><div style="font-size:9px">SKOR RISIKO</div></div>

@@ -2,10 +2,10 @@
 
 export const PROVIDER_META = {
   auto: { label: "Otomatis (gratis dulu)", free: true },
-  gemini: { label: "Google Gemini (gratis)", free: true, keyEnv: "GEMINI_API_KEY", signup: "https://aistudio.google.com/apikey" },
+  gemini: { label: "Google Gemini (gratis)", free: true, keyEnv: "GEMINI_API_KEY", signup: "https://aistudio.google.com/apikey", vision: true },
   groq: { label: "Groq Llama (gratis)", free: true, keyEnv: "GROQ_API_KEY", signup: "https://console.groq.com/keys" },
   ollama: { label: "Ollama lokal (gratis)", free: true, note: "Jalankan: ollama pull llama3.2" },
-  claude: { label: "Claude (berbayar)", free: false, keyEnv: "ANTHROPIC_API_KEY" },
+  claude: { label: "Claude (berbayar)", free: false, keyEnv: "ANTHROPIC_API_KEY", vision: true },
 };
 
 const DEFAULT_MODELS = {
@@ -42,27 +42,43 @@ function autoProviderOrder() {
   return order;
 }
 
-function pickAutoProvider() {
-  if (process.env.GEMINI_API_KEY) return "gemini";
-  if (process.env.GROQ_API_KEY) return "groq";
-  if (process.env.ANTHROPIC_API_KEY) return "claude";
-  if (!isServerlessHost()) return "ollama";
-  throw new Error("GEMINI_API_KEY atau GROQ_API_KEY belum di-set di Vercel. Ollama tidak tersedia di server cloud.");
+function normalizeResponseFormat(value) {
+  return value === "json" ? "json" : "text";
 }
 
-async function callGemini({ system, user, maxTokens, model }) {
+function normalizeImages(images) {
+  return (Array.isArray(images) ? images : [])
+    .map((img) => {
+      if (!img) return null;
+      const source = img.source || {};
+      const mimeType = img.mimeType || img.media_type || source.media_type || source.mimeType || "image/jpeg";
+      const data = img.data || source.data || "";
+      return data ? { mimeType, data } : null;
+    })
+    .filter(Boolean);
+}
+
+async function callGemini({ system, user, maxTokens, model, responseFormat, images }) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY belum di-set. Dapatkan gratis di https://aistudio.google.com/apikey");
   const m = model || process.env.GEMINI_MODEL || DEFAULT_MODELS.gemini;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`;
+  const parts = [];
+  for (const image of normalizeImages(images)) {
+    parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+  }
+  parts.push({ text: String(user) });
+  const generationConfig = {
+    maxOutputTokens: maxTokens || 2000,
+    temperature: 0.2,
+  };
+  if (normalizeResponseFormat(responseFormat) === "json") {
+    generationConfig.responseMimeType = "application/json";
+  }
   const body = {
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-    contents: [{ role: "user", parts: [{ text: user }] }],
-    generationConfig: {
-      maxOutputTokens: maxTokens || 2000,
-      temperature: 0.2,
-      responseMimeType: "application/json",
-    },
+    contents: [{ role: "user", parts }],
+    generationConfig,
   };
   const resp = await fetchWithTimeout(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const data = await resp.json().catch(() => ({}));
@@ -72,7 +88,8 @@ async function callGemini({ system, user, maxTokens, model }) {
   return { text, provider: "gemini", model: m };
 }
 
-async function callGroq({ system, user, maxTokens, model }) {
+async function callGroq({ system, user, maxTokens, model, images }) {
+  if (normalizeImages(images).length) throw new Error("Groq belum mendukung Vision OCR di aplikasi ini. Pilih Gemini atau Claude.");
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY belum di-set. Dapatkan gratis di https://console.groq.com/keys");
   const m = model || process.env.GROQ_MODEL || DEFAULT_MODELS.groq;
@@ -91,7 +108,8 @@ async function callGroq({ system, user, maxTokens, model }) {
   return { text, provider: "groq", model: m };
 }
 
-async function callOllama({ system, user, maxTokens, model }) {
+async function callOllama({ system, user, maxTokens, model, images }) {
+  if (normalizeImages(images).length) throw new Error("Ollama Vision OCR belum dikonfigurasi. Pilih Gemini atau Claude.");
   const host = (process.env.OLLAMA_HOST || "http://127.0.0.1:11434").replace(/\/$/, "");
   const m = model || process.env.OLLAMA_MODEL || DEFAULT_MODELS.ollama;
   const messages = [];
@@ -112,14 +130,19 @@ async function callOllama({ system, user, maxTokens, model }) {
   return { text, provider: "ollama", model: m };
 }
 
-async function callClaude({ system, user, maxTokens, model }) {
+async function callClaude({ system, user, maxTokens, model, images }) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY belum di-set (Claude berbayar). Gunakan Gemini/Groq/Ollama gratis.");
   const m = model || process.env.CLAUDE_MODEL || DEFAULT_MODELS.claude;
+  const content = normalizeImages(images).map((image) => ({
+    type: "image",
+    source: { type: "base64", media_type: image.mimeType, data: image.data },
+  }));
+  content.push({ type: "text", text: String(user) });
   const resp = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: m, max_tokens: maxTokens || 2000, system: system || undefined, messages: [{ role: "user", content: user }] }),
+    body: JSON.stringify({ model: m, max_tokens: maxTokens || 2000, system: system || undefined, messages: [{ role: "user", content }] }),
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) throw new Error(data?.error?.message || data?.error || `Claude HTTP ${resp.status}`);
@@ -132,23 +155,28 @@ const CALLERS = { gemini: callGemini, groq: callGroq, ollama: callOllama, claude
 
 /** Route to provider; `auto` tries free providers in order with fallback. */
 export async function routeAI(payload) {
-  const { system, user, maxTokens = 2000, model } = payload || {};
+  const { system, user, maxTokens = 2000, model, images = [] } = payload || {};
   if (!user) throw new Error("Prompt user kosong");
+  const responseFormat = normalizeResponseFormat(payload.responseFormat);
+  const normalizedImages = normalizeImages(images);
 
   let provider = String(payload.provider || "auto").toLowerCase();
   if (provider === "auto") {
     const order = autoProviderOrder();
     const available = order.filter((p) => {
       const meta = PROVIDER_META[p];
+      if (normalizedImages.length && !meta.vision) return false;
       if (!meta.keyEnv) return !isServerlessHost();
       return !!process.env[meta.keyEnv];
     });
     if (!available.length) {
-      throw new Error("Tidak ada provider AI yang dikonfigurasi. Set GEMINI_API_KEY atau GROQ_API_KEY di Vercel lalu redeploy.");
+      throw new Error(normalizedImages.length
+        ? "Tidak ada provider Vision OCR yang dikonfigurasi. Set GEMINI_API_KEY atau ANTHROPIC_API_KEY lalu redeploy."
+        : "Tidak ada provider AI yang dikonfigurasi. Set GEMINI_API_KEY atau GROQ_API_KEY di Vercel lalu redeploy.");
     }
     let lastErr;
     for (const p of available) {
-      try { return await CALLERS[p]({ system, user, maxTokens, model }); }
+      try { return await CALLERS[p]({ system, user, maxTokens, model, responseFormat, images: normalizedImages }); }
       catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("Tidak ada provider AI yang tersedia");
@@ -156,13 +184,20 @@ export async function routeAI(payload) {
 
   const fn = CALLERS[provider];
   if (!fn) throw new Error(`Provider tidak dikenal: ${provider}`);
-  return fn({ system, user, maxTokens, model });
+  return fn({ system, user, maxTokens, model, responseFormat, images: normalizedImages });
 }
 
 export function listAvailableProviders() {
   return Object.entries(PROVIDER_META).map(([id, meta]) => ({
     id,
     ...meta,
-    configured: meta.keyEnv ? !!process.env[meta.keyEnv] : id === "ollama" || id === "auto",
+    configured: meta.keyEnv
+      ? !!process.env[meta.keyEnv]
+      : id === "auto"
+        ? autoProviderOrder().some((p) => {
+          const candidate = PROVIDER_META[p];
+          return candidate.keyEnv ? !!process.env[candidate.keyEnv] : !isServerlessHost();
+        })
+        : !isServerlessHost(),
   }));
 }

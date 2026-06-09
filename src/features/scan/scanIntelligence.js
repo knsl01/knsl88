@@ -45,6 +45,7 @@ export async function analyzeDocument(text, locale = "id") {
       system: SCAN_INTEL_SYSTEM,
       user: `Skema:\n${SCAN_INTEL_SCHEMA}\n\n${langNote}\n\nTEKS OCR:\n${sample}`,
       maxTokens: 1800,
+      responseFormat: "json",
     });
     const parsed = parseAgentJson(raw);
     return {
