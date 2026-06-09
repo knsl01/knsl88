@@ -14,7 +14,7 @@ import {
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
-import { searchPasal, outsideHits, lawShort, lawColor, lawSlug } from "./services/pasalSearch.js";
+import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL } from "./services/pasalSearch.js";
 import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
 import { AGENT_IDS } from "./agents/registry.js";
