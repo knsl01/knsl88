@@ -1,7 +1,24 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { routeAI } from "./api/aiRouter.mjs";
 import { apiDevMiddleware } from "./scripts/api-dev-middleware.mjs";
+
+/**
+ * Vite only exposes `VITE_`-prefixed vars to client code and does NOT populate
+ * `process.env` with the contents of `.env` / `.env.local`. The dev API proxy
+ * (and aiRouter) read server secrets like GROQ_API_KEY / GEMINI_API_KEY from
+ * `process.env`, so without this they never see keys placed in `.env.local`.
+ * Load every var (empty prefix) and merge into process.env, letting real shell
+ * env take precedence over file values.
+ */
+function loadServerEnv(mode) {
+  const fileEnv = loadEnv(mode, process.cwd(), "");
+  for (const [key, value] of Object.entries(fileEnv)) {
+    if (process.env[key] === undefined && value !== undefined && value !== "") {
+      process.env[key] = value;
+    }
+  }
+}
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -37,8 +54,8 @@ function aiDevProxy() {
           return;
         }
         if (req.method === "GET") {
-          const { listAvailableProviders } = await import("./api/aiRouter.mjs");
-          sendJson(res, 200, { providers: listAvailableProviders() });
+          const { getAIStatus } = await import("./api/aiRouter.mjs");
+          sendJson(res, 200, getAIStatus());
           return;
         }
         if (req.method !== "POST") {
@@ -77,7 +94,10 @@ function aiDevProxy() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), aiDevProxy()],
-  base: "./",
+export default defineConfig(({ mode }) => {
+  loadServerEnv(mode);
+  return {
+    plugins: [react(), aiDevProxy()],
+    base: "./",
+  };
 });

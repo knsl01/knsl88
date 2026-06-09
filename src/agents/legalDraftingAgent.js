@@ -30,6 +30,7 @@ export async function runLegalDrafting({
     user,
     maxTokens: 4000,
     provider,
+    responseFormat: format === "json" ? "json" : "text",
   });
 
   if (format === "prose") return { body: String(raw).trim() };

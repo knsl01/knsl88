@@ -977,7 +977,7 @@ function Analysis({ seed }) {
             </label>
             {useAI && (
               <>
-                <KnslAgentPicker compact defaultId={AGENT_IDS.ANALYSIS} allowedIds={[AGENT_IDS.ANALYSIS, AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.MEMO]} />
+                <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.ANALYSIS} allowedIds={[AGENT_IDS.ANALYSIS, AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.MEMO]} />
                 <AiProviderPicker compact />
               </>
             )}
@@ -1302,7 +1302,7 @@ function Research({ seed }) {
         </label>
         {useAI && (
           <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-            <KnslAgentPicker compact defaultId={AGENT_IDS.RESEARCH} allowedIds={[AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.CHAT]} />
+            <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.RESEARCH} allowedIds={[AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.CHAT]} />
             <AiProviderPicker compact />
             <button className="btn-primary" onClick={runAi} disabled={aiBusy || !q.trim()}>
               {aiBusy ? <><Activity size={16} /> Menyusun riset…</> : <><Sparkles size={16} /> Jalankan Riset AI</>}
@@ -1952,7 +1952,7 @@ function Drafting() {
           </div>
           <div style={{ marginTop: 16, border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Sparkles size={15} className="gold-text" /><span style={{ fontSize: 12.5, fontWeight: 600 }}>Generate dengan KNSL AI</span></div>
-            <KnslAgentPicker compact defaultId={AGENT_IDS.DRAFTING} allowedIds={[AGENT_IDS.DRAFTING, "orchestrator", AGENT_IDS.MEMO]} />
+            <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.DRAFTING} allowedIds={[AGENT_IDS.DRAFTING, "orchestrator", AGENT_IDS.MEMO]} />
             <AiProviderPicker compact />
             <textarea className="field" rows={3} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder={`Instruksi opsional, mis. ton formal, pihak A sebagai kreditor… (default: ${doc.label})`} style={{ marginTop: 8 }} />
             <button className="btn-primary" style={{ marginTop: 10, width: "100%", justifyContent: "center" }} onClick={runAiDraft} disabled={aiBusy}>
@@ -2568,7 +2568,7 @@ function crReportHTML(rec) {
     <tr><td><b>Dokumen</b></td><td>: ${crEsc(rec.name)}</td></tr>
     <tr><td><b>Perspektif tinjauan</b></td><td>: ${crEsc(rec.ctx || "Pihak peninjau")}</td></tr>
     <tr><td><b>Jumlah klausul</b></td><td>: ${rec.clauses.length}</td></tr>
-    <tr><td><b>Mesin</b></td><td>: ${rec.usedAI ? "AI Counsel (Claude) + heuristik" : "Heuristik deterministik"}</td></tr>
+    <tr><td><b>Mesin</b></td><td>: ${rec.usedAI ? "AI Counsel multi-provider + heuristik" : "Heuristik deterministik"}</td></tr>
   </table>
   <h2>1. Ringkasan Eksekutif</h2>
   <div class="scorebox"><div class="n">${r.score}</div><div style="font-size:9px">SKOR RISIKO</div></div>
@@ -2867,7 +2867,7 @@ function ContractReview() {
             </label>
             {useAI && (
               <>
-                <KnslAgentPicker compact defaultId={AGENT_IDS.CONTRACT} allowedIds={[AGENT_IDS.CONTRACT, AGENT_IDS.COMPLIANCE, "orchestrator", AGENT_IDS.DRAFTING]} />
+                <KnslAgentPicker compact showEnableToggle defaultEnabled={false} defaultId={AGENT_IDS.CONTRACT} allowedIds={[AGENT_IDS.CONTRACT, AGENT_IDS.COMPLIANCE, "orchestrator", AGENT_IDS.DRAFTING]} />
                 <AiProviderPicker compact />
               </>
             )}

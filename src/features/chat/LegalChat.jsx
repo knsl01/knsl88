@@ -143,7 +143,7 @@ export default function LegalChat() {
 
     try {
       const agentId = getKnslAgent();
-      const { text: reply } = await dispatchKnslChatAgent({
+      const { text: reply, meta: dispatchMeta } = await dispatchKnslChatAgent({
         agentId,
         messages: next,
         provider: getAiProvider(),
@@ -158,15 +158,21 @@ export default function LegalChat() {
       const updated = [...next, assistantMsg];
       setMessages(updated);
       await persist(updated);
-      const meta = getLastAiMeta();
       let note = "";
-      if (meta?.provider) {
-        note = t("chat.answeredVia", {
-          provider: getProviderLabel(meta.provider),
-          model: meta.model ? ` · ${meta.model}` : "",
-        });
+      if (dispatchMeta?.heuristic) {
+        note = locale === "en"
+          ? "Answered in offline mode (no AI) — KNSL statute base"
+          : "Dijawab mode hemat (tanpa AI) — basis pasal KNSL";
+      } else {
+        const meta = getLastAiMeta();
+        if (meta?.provider) {
+          note = t("chat.answeredVia", {
+            provider: getProviderLabel(meta.provider),
+            model: meta.model ? ` · ${meta.model}` : "",
+          });
+        }
+        note += t("chat.answeredViaAgent", { agent: getKnslAgentLabel(agentId, locale) });
       }
-      note += t("chat.answeredViaAgent", { agent: getKnslAgentLabel(agentId, locale) });
       if (note) setAiNote(note);
     } catch (e) {
       const errMsg = getLastAiError() || e.message || t("chat.errorContact");

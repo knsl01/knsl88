@@ -5,7 +5,7 @@
  * Design: heuristic floor + AI enrichment; strict JSON; retry; no verdicts.
  * ========================================================================== */
 
-import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError } from "./aiProviders.js";
+import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError, normalizeAiProvider } from "./aiProviders.js";
 import {
   CASE_SYSTEM,
   CASE_SCHEMA,
@@ -43,7 +43,7 @@ async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) {
       const raw = data.error || `AI HTTP ${resp.status}`;
-      throw new Error(formatAiError(raw, prov));
+      throw new Error(raw);
     }
     return data;
   } catch (e) {
@@ -56,14 +56,22 @@ async function fetchAi(ep, body, prov, timeoutMs = LLM_TIMEOUT_MS) {
   }
 }
 
+function shouldRetryAiError(raw) {
+  const m = String(raw || "").toLowerCase();
+  if (m.includes("api key") || m.includes("invalid") || m.includes("permission")) return false;
+  if (m.includes("quota") || m.includes("exceeded") || m.includes("resource_exhausted") || m.includes("rate limit")) return false;
+  if (m.includes("belum di-set") || m.includes("tidak ada provider")) return false;
+  return true;
+}
+
 /** Unified LLM call — routes to Gemini / Groq / Ollama / Claude via /api/ai. */
-export async function callLLM({ system, user, maxTokens = 2000, provider, retries = 2, timeoutMs }) {
+export async function callLLM({ system, user, maxTokens = 2000, provider, retries = 2, timeoutMs, responseFormat = "text", images }) {
   const ep = getAiProxyEndpoint();
-  const prov = provider || getAiProvider();
-  if (prov === "ollama" && typeof window !== "undefined" && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
-    throw new Error("Ollama hanya untuk dev lokal. Di knsl.tech pilih Google Gemini atau Groq.");
-  }
-  const body = { provider: prov, system: system || undefined, user, maxTokens };
+  const prov = normalizeAiProvider(provider || getAiProvider());
+  const body = { provider: prov, system: system || undefined, user, maxTokens, responseFormat };
+  if (images?.length) body.images = images;
+  setLastAiError(null);
+  setLastAiMeta(null);
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -74,9 +82,15 @@ export async function callLLM({ system, user, maxTokens = 2000, provider, retrie
       setLastAiError(null);
       return txt;
     } catch (e) {
-      lastErr = e;
-      setLastAiError(formatAiError(e.message || e, prov));
-      if (attempt < retries) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      const formatted = formatAiError(e.message || e, prov);
+      lastErr = new Error(formatted);
+      setLastAiError(formatted);
+      setLastAiMeta(null);
+      if (attempt < retries && shouldRetryAiError(e.message || e)) {
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      } else {
+        break;
+      }
     }
   }
   throw lastErr;
@@ -104,7 +118,7 @@ export const CaseAnalysisAgent = {
         user += "\nIsu terdeteksi: " + hint.heuristicIssues.slice(0, 8).join("; ");
       }
     }
-    const txt = await callLLM({ system: CASE_SYSTEM, user, maxTokens: 2500, retries: 1, timeoutMs: 55000 });
+    const txt = await callLLM({ system: CASE_SYSTEM, user, maxTokens: 2500, retries: 1, timeoutMs: 55000, responseFormat: "json" });
     return parseAgentJson(txt);
   },
 
@@ -131,7 +145,7 @@ export const CaseAnalysisAgent = {
 
     const user = `FAKTA:\n${factList}\n\nISU:\n${issueList}\n\nKANDIDAT PASAL:\n${JSON.stringify(candidates)}`;
 
-    const txt = await callLLM({ system, user, maxTokens: 1200, retries: 0, timeoutMs: 35000 });
+    const txt = await callLLM({ system, user, maxTokens: 1200, retries: 0, timeoutMs: 35000, responseFormat: "json" });
     const parsed = parseAgentJson(txt);
     const rankMap = {};
     for (const r of (parsed.rankings || [])) {
@@ -171,7 +185,7 @@ Perspektif tinjauan: ${ctx || "netral"}
 KONTRAK:\n${String(text).slice(0, 6000)}`;
 
     try {
-      const txt = await callLLM({ system, user, maxTokens: 800 });
+      const txt = await callLLM({ system, user, maxTokens: 800, responseFormat: "json" });
       return parseAgentJson(txt);
     } catch {
       return { contractType: "Kontrak", parties: "", governingTheme: "", keyRisks: [], reviewPerspective: ctx };
@@ -196,7 +210,7 @@ ${ctxBlock}
 
 KLAUSUL:\n${JSON.stringify(list)}`;
 
-    const txt = await callLLM({ system, user, maxTokens: 3500 });
+    const txt = await callLLM({ system, user, maxTokens: 3500, responseFormat: "json" });
     const parsed = parseAgentJson(txt);
     const map = {};
     for (const r of (parsed.reviews || [])) {
@@ -214,7 +228,7 @@ Gunakan "-" jika tidak dinyatakan.
 
 KONTRAK:\n${String(text).slice(0, 9000)}`;
 
-    const txt = await callLLM({ system, user, maxTokens: 1200 });
+    const txt = await callLLM({ system, user, maxTokens: 1200, responseFormat: "json" });
     const parsed = parseAgentJson(txt);
     return parsed.points || {};
   },
