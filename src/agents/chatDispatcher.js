@@ -1,0 +1,156 @@
+/**
+ * Dispatcher chat — jalankan agen KNSL yang dipilih user.
+ */
+
+import { AGENT_IDS } from "./registry.js";
+import { askLegalChat } from "./legalChatAgent.js";
+import { runLegalResearch } from "./legalResearchAgent.js";
+import { runLegalDrafting } from "./legalDraftingAgent.js";
+import { runLegalMemo } from "./legalMemoAgent.js";
+import { runComplianceReview } from "./complianceAgent.js";
+import { routeIntent, runOrchestratedPipeline, synthesizeResults } from "./orchestrator.js";
+import { CaseAnalysisAgent } from "../knslAiAgent.js";
+
+function lastUserText(messages) {
+  const last = [...messages].reverse().find((m) => m.role === "user");
+  return last?.content?.trim() || "";
+}
+
+function formatResearchResult(data) {
+  if (data.text) return data.text;
+  const lines = [];
+  if (data.issueRestated) lines.push(`**Isu:** ${data.issueRestated}`);
+  if (data.legalDomain) lines.push(`**Bidang:** ${data.legalDomain}`);
+  if (data.primarySources?.length) {
+    lines.push("\n**Sumber hukum:**");
+    for (const s of data.primarySources) {
+      lines.push(`- ${s.instrument} ${s.articles || ""} — ${s.relevance} (${s.confidence})`);
+    }
+  }
+  if (data.elementsOrRequirements?.length) {
+    lines.push("\n**Unsur / syarat:**");
+    for (const e of data.elementsOrRequirements) {
+      lines.push(`- **${e.label}:** ${e.description}`);
+    }
+  }
+  if (data.procedureNotes) lines.push(`\n**Prosedur:** ${data.procedureNotes}`);
+  if (data.practicalImplications?.length) {
+    lines.push("\n**Implikasi praktis:**");
+    data.practicalImplications.forEach((p) => lines.push(`- ${p}`));
+  }
+  if (data.uncertainties?.length) {
+    lines.push("\n**Ketidakpastian:**");
+    data.uncertainties.forEach((u) => lines.push(`- ${u}`));
+  }
+  if (data.suggestedNextSteps?.length) {
+    lines.push("\n**Langkah lanjut:**");
+    data.suggestedNextSteps.forEach((s) => lines.push(`- ${s}`));
+  }
+  lines.push("\n_Ini informasi riset hukum, bukan nasihat hukum resmi — konsultasikan advokat untuk keputusan konkret._");
+  return lines.join("\n");
+}
+
+function formatAnalysisResult(data) {
+  const lines = ["**Hasil analisa perkara**\n"];
+  if (data.facts?.length) {
+    lines.push("**Fakta:**");
+    data.facts.forEach((f, i) => {
+      lines.push(`${i + 1}. [${f.certainty}] ${f.statement}`);
+    });
+  }
+  if (data.missingFacts?.length) {
+    lines.push("\n**Fakta yang masih kurang:**");
+    data.missingFacts.forEach((m) => lines.push(`- ${m.description} _(untuk: ${m.neededFor})_`));
+  }
+  if (data.issues?.length) {
+    lines.push("\n**Isu hukum:**");
+    data.issues.forEach((iss, i) => {
+      lines.push(`${i + 1}. [${iss.category}] ${iss.statement} — _keyakinan: ${iss.confidence}_`);
+    });
+  }
+  lines.push("\n_Lanjutkan ke modul Analisis untuk retrieval pasal & uji unsur otomatis._");
+  lines.push("\n_Ini informasi riset hukum, bukan nasihat hukum resmi._");
+  return lines.join("\n");
+}
+
+function formatComplianceResult(data) {
+  if (data.text) return data.text;
+  const lines = [`**Kepatuhan:** ${data.scope || "—"}\n`];
+  if (data.gaps?.length) {
+    lines.push("**Gap:**");
+    data.gaps.forEach((g) => {
+      lines.push(`- [${g.severity}] ${g.area}: ${g.gap} → _${g.recommendation}_`);
+    });
+  }
+  if (data.priorityActions?.length) {
+    lines.push("\n**Prioritas:**");
+    data.priorityActions.forEach((a) => lines.push(`- ${a}`));
+  }
+  lines.push("\n_Ini informasi riset hukum, bukan nasihat hukum resmi._");
+  return lines.join("\n");
+}
+
+/**
+ * @param {{ agentId: string, messages: object[], provider?: string }} opts
+ * @returns {Promise<{ text: string, meta?: object }>}
+ */
+export async function dispatchKnslChatAgent({ agentId, messages, provider }) {
+  const text = lastUserText(messages);
+  if (!text) throw new Error("Pertanyaan kosong.");
+
+  switch (agentId) {
+    case "orchestrator": {
+      const route = await routeIntent({ text, provider });
+      if (route.needsClarification) {
+        const qs = (route.clarifyingQuestions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
+        return {
+          text: `**KNSL Lead Counsel** memerlukan klarifikasi sebelum melanjutkan:\n\n${qs}\n\n_Silakan jawab poin di atas dalam pesan berikutnya._`,
+          meta: { route },
+        };
+      }
+      const results = await runOrchestratedPipeline({ text, route, provider });
+      if (results.status === "clarification_needed") {
+        const qs = (results.questions || []).map((q, i) => `${i + 1}. ${q}`).join("\n");
+        return { text: `**Klarifikasi diperlukan:**\n\n${qs}`, meta: { route: results.route } };
+      }
+      const summary = await synthesizeResults({ results, provider });
+      return {
+        text: String(summary).trim(),
+        meta: { route, agents: Object.keys(results.agents || {}) },
+      };
+    }
+
+    case AGENT_IDS.CHAT: {
+      const reply = await askLegalChat({ messages, provider });
+      return { text: reply };
+    }
+
+    case AGENT_IDS.RESEARCH: {
+      const data = await runLegalResearch({ query: text, format: "json", provider });
+      return { text: formatResearchResult(data) };
+    }
+
+    case AGENT_IDS.DRAFTING: {
+      const data = await runLegalDrafting({ request: text, format: "prose", provider });
+      return { text: data.body || String(data) };
+    }
+
+    case AGENT_IDS.MEMO: {
+      const data = await runLegalMemo({ facts: text, issues: text, provider });
+      return { text: data.body };
+    }
+
+    case AGENT_IDS.COMPLIANCE: {
+      const data = await runComplianceReview({ scope: text, provider });
+      return { text: formatComplianceResult(data) };
+    }
+
+    case AGENT_IDS.ANALYSIS: {
+      const data = await CaseAnalysisAgent.analyzeChronology(text);
+      return { text: formatAnalysisResult(data) };
+    }
+
+    default:
+      throw new Error(`Agen KNSL tidak dikenal: ${agentId}`);
+  }
+}

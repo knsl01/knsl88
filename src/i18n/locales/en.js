@@ -151,8 +151,11 @@ export default {
     welcomeNote:
       "Note: this is not formal legal advice; always verify statutes and consult a lawyer for concrete decisions.",
     answeredVia: "Answered via {{provider}}{{model}}",
+    answeredViaAgent: " · Agent: {{agent}}",
+    knslAgentLabel: "KNSL AI Agent",
+    knslAgentRecommended: "Recommended for most questions",
     clearHistory: "Clear history",
-    aiProviderDetail: "AI provider details",
+    aiProviderDetail: "AI settings",
     errorContact: "Failed to reach AI.",
     errorSorry: "Sorry, I cannot respond right now.\n\n**Error:** {{error}}\n\nTry another AI provider or check API keys in deploy settings.",
   },

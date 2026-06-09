@@ -6,6 +6,7 @@
 - **Routing**: React Router v6 — `src/routes/AppRoutes.jsx`, `ProtectedRoute`, `GuestRoute`
 - **Auth**: Supabase when `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set; else local login
 - **AI**: `/api/ai` proxy (Gemini/Groq/Ollama) — see `src/PANDUAN_AI_GRATIS.md`
+- **Multi-agent**: orchestrator + sub-agents — see `src/PANDUAN_AGENT_FLOW.md`, prompts in `src/agents/prompts/`
 - **Optional backend**: Vercel serverless + PostgreSQL — see `src/PANDUAN_BACKEND.md`
 - **Supabase**: see `src/PANDUAN_SUPABASE.md`
 

@@ -151,8 +151,11 @@ export default {
     welcomeNote:
       "Catatan: ini bukan nasihat hukum resmi; verifikasi selalu pada teks UU/peraturan dan konsultasikan advokat untuk keputusan konkret.",
     answeredVia: "Dijawab via {{provider}}{{model}}",
+    answeredViaAgent: " · Agen: {{agent}}",
+    knslAgentLabel: "Agen KNSL AI",
+    knslAgentRecommended: "Direkomendasikan untuk kebanyakan pertanyaan",
     clearHistory: "Hapus riwayat",
-    aiProviderDetail: "Detail provider AI",
+    aiProviderDetail: "Pengaturan AI",
     errorContact: "Gagal menghubungi AI.",
     errorSorry: "Maaf, saya tidak dapat menjawab saat ini.\n\n**Error:** {{error}}\n\nCoba ganti provider AI atau periksa API key di pengaturan deploy.",
   },
