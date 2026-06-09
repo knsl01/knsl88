@@ -15,9 +15,7 @@ import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
 import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm } from "./services/pasalSearch.js";
-import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
-import { AGENT_IDS } from "./agents/registry.js";
 import { runLegalDrafting } from "./agents/legalDraftingAgent.js";
 
 import { checkBackend, login as apiLogin, register as apiRegister, getToken, saveCaseAnalysis, saveContractReview, clearToken } from "./knslApi.js";
@@ -975,12 +973,7 @@ function Analysis({ seed }) {
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 15, height: 15 }} />
               <Sparkles size={13} className="gold-text" /> Agen AI (Fakta, Isu &amp; rerank Pasal) — uji unsur tetap deterministik
             </label>
-            {useAI && (
-              <>
-                <KnslAgentPicker compact defaultId={AGENT_IDS.ANALYSIS} allowedIds={[AGENT_IDS.ANALYSIS, AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.MEMO]} />
-                <AiProviderPicker compact />
-              </>
-            )}
+            {useAI && <AiProviderPicker compact />}
             <div>
               <div style={{ fontSize: 11.5, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 9 }}>Skenario contoh</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -1302,7 +1295,6 @@ function Research({ seed }) {
         </label>
         {useAI && (
           <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-            <KnslAgentPicker compact defaultId={AGENT_IDS.RESEARCH} allowedIds={[AGENT_IDS.RESEARCH, "orchestrator", AGENT_IDS.CHAT]} />
             <AiProviderPicker compact />
             <button className="btn-primary" onClick={runAi} disabled={aiBusy || !q.trim()}>
               {aiBusy ? <><Activity size={16} /> Menyusun riset…</> : <><Sparkles size={16} /> Jalankan Riset AI</>}
@@ -1952,7 +1944,6 @@ function Drafting() {
           </div>
           <div style={{ marginTop: 16, border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Sparkles size={15} className="gold-text" /><span style={{ fontSize: 12.5, fontWeight: 600 }}>Generate dengan KNSL AI</span></div>
-            <KnslAgentPicker compact defaultId={AGENT_IDS.DRAFTING} allowedIds={[AGENT_IDS.DRAFTING, "orchestrator", AGENT_IDS.MEMO]} />
             <AiProviderPicker compact />
             <textarea className="field" rows={3} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder={`Instruksi opsional, mis. ton formal, pihak A sebagai kreditor… (default: ${doc.label})`} style={{ marginTop: 8 }} />
             <button className="btn-primary" style={{ marginTop: 10, width: "100%", justifyContent: "center" }} onClick={runAiDraft} disabled={aiBusy}>
@@ -2865,12 +2856,7 @@ function ContractReview() {
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 16, height: 16 }} />
               <Sparkles size={14} className="gold-text" /> Gunakan Agen AI Contract Review
             </label>
-            {useAI && (
-              <>
-                <KnslAgentPicker compact defaultId={AGENT_IDS.CONTRACT} allowedIds={[AGENT_IDS.CONTRACT, AGENT_IDS.COMPLIANCE, "orchestrator", AGENT_IDS.DRAFTING]} />
-                <AiProviderPicker compact />
-              </>
-            )}
+            {useAI && <AiProviderPicker compact />}
             <button className="btn-primary" style={{ marginTop: 14, width: "100%", justifyContent: "center" }} onClick={analyze} disabled={busy || !text.trim()}>
               {stage === "reviewing" ? <><Activity size={16} /> Meninjau…</> : <><Zap size={16} /> Tinjau Kontrak</>}
             </button>
