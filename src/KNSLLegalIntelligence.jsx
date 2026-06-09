@@ -19,6 +19,15 @@ import { STYLES, LogoMark } from "./theme.jsx";
 import { useAuth } from "./contexts/AuthContext.jsx";
 import { isSupabaseConfigured } from "./lib/supabase.js";
 import { saveCaseAnalysisCloud, saveContractReviewCloud } from "./services/supabaseData.js";
+import {
+  fetchCaseAnalysisHistory,
+  loadCaseAnalysisRecord,
+  removeCaseAnalysisRecord,
+  fetchContractReviewHistory,
+  loadContractReviewRecord,
+  removeContractReviewRecord,
+  isRemoteHistoryEnabled,
+} from "./services/historyStore.js";
 import ProfilePanel from "./components/profile/ProfilePanel.jsx";
 import UserAvatar from "./components/profile/UserAvatar.jsx";
 import Dashboard from "./features/dashboard/Dashboard.jsx";
@@ -582,13 +591,15 @@ async function hashPW(pw) {
 }
 
 function persistCaseAnalysis(data) {
-  if (isSupabaseConfigured) saveCaseAnalysisCloud(data).catch(() => {});
-  else if (getToken()) saveCaseAnalysis(data).catch(() => {});
+  if (isSupabaseConfigured) return saveCaseAnalysisCloud(data).catch(() => {});
+  if (getToken()) return saveCaseAnalysis(data).catch(() => {});
+  return Promise.resolve();
 }
 
 function persistContractReview(record) {
-  if (isSupabaseConfigured) saveContractReviewCloud(record).catch(() => {});
-  else if (getToken()) saveContractReview(record).catch(() => {});
+  if (isSupabaseConfigured) return saveContractReviewCloud(record).catch(() => {});
+  if (getToken()) return saveContractReview(record).catch(() => {});
+  return Promise.resolve();
 }
 
 function getAccounts() {
@@ -910,6 +921,36 @@ function Analysis({ seed }) {
   const [useAI, setUseAI] = useState(true);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiWanted, setAiWanted] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
+
+  const refreshHistory = useCallback(async () => {
+    if (!isRemoteHistoryEnabled()) { setHistory([]); return; }
+    setHistoryLoading(true);
+    try { setHistory(await fetchCaseAnalysisHistory()); }
+    catch { setHistory([]); }
+    finally { setHistoryLoading(false); }
+  }, []);
+
+  useEffect(() => { refreshHistory(); }, [refreshHistory]);
+
+  const loadHistory = async (item) => {
+    const rec = await loadCaseAnalysisRecord(item.id, { remote: item.remote });
+    if (!rec?.data) return;
+    setData(rec.data);
+    setFilter(rec.filter || "all");
+    setQ(rec.title || item.title);
+    setActiveHistoryId(item.id);
+    setTab("facts");
+  };
+
+  const removeHistoryItem = async (item, e) => {
+    e.stopPropagation();
+    await removeCaseAnalysisRecord(item.id, { remote: item.remote });
+    if (activeHistoryId === item.id) { setData(null); setActiveHistoryId(null); }
+    refreshHistory();
+  };
 
   const doRun = async (input, flt) => {
     if (!input || !input.trim()) return;
@@ -919,20 +960,24 @@ function Analysis({ seed }) {
       setAiBusy(true);
       try {
         const r = await aiRunPipeline(input, flt);
-        setData(r); setLoading(false); setTab("facts");
-        persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: r.source, aiStatus: r.aiStatus, payload: r });
+        setData(r); setLoading(false); setTab("facts"); setActiveHistoryId(null);
+        await persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: r.source, aiStatus: r.aiStatus, payload: r });
+        refreshHistory();
       }
       catch (e) {
         const heur = runPipeline(input, flt);
         heur.source = "heuristic"; heur.aiStatus = "error"; heur.aiError = String(e.message || e);
-        setData(heur); setLoading(false); setTab("facts");
+        setData(heur); setLoading(false); setTab("facts"); setActiveHistoryId(null);
+        await persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "error", payload: heur });
+        refreshHistory();
       }
       setAiBusy(false);
     } else {
       const heur = runPipeline(input, flt);
       heur.source = "heuristic"; heur.aiStatus = "off";
-      setData(heur); setLoading(false); setTab("facts");
-      persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "off", payload: heur });
+      setData(heur); setLoading(false); setTab("facts"); setActiveHistoryId(null);
+      await persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "off", payload: heur });
+      refreshHistory();
     }
   };
   const run = (text) => { doRun(text != null ? text : q, filter); };
@@ -988,6 +1033,45 @@ function Analysis({ seed }) {
               </div>
             </div>
           </div>
+
+          {isRemoteHistoryEnabled() && (
+            <div className="glass rise" style={{ padding: 18, marginTop: 16, animationDelay: ".06s" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <History size={15} className="gold-text" />
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>Riwayat Analisa</span>
+                <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted)" }}>{historyLoading ? "…" : history.length}</span>
+              </div>
+              {history.length === 0 && !historyLoading && (
+                <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>Belum ada analisa tersimpan di cloud.</p>
+              )}
+              <div style={{ display: "grid", gap: 8 }}>
+                {history.map((h) => (
+                  <div
+                    key={h.id}
+                    onClick={() => loadHistory(h)}
+                    className="glass"
+                    style={{
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      background: activeHistoryId === h.id ? "rgba(31,179,126,0.08)" : undefined,
+                    }}
+                  >
+                    <Scale size={15} style={{ color: "var(--muted)", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.title}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                        {h.facts} fakta · {h.issues} isu · {new Date(h.ts).toLocaleString("id-ID")}
+                      </div>
+                    </div>
+                    <Trash2 size={14} style={{ color: "var(--muted-2)", flexShrink: 0 }} onClick={(e) => removeHistoryItem(h, e)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* results */}
@@ -2562,7 +2646,18 @@ function ContractReview() {
   const [pasteMode, setPasteMode] = useState(false);
   const inputRef = React.useRef(null);
 
-  useEffect(() => { crListIndex().then(setHistory); }, []);
+  const refreshHistory = useCallback(async () => {
+    const local = await crListIndex();
+    if (isRemoteHistoryEnabled()) {
+      try {
+        setHistory(await fetchContractReviewHistory(local));
+        return;
+      } catch { /* fallback local */ }
+    }
+    setHistory(local);
+  }, []);
+
+  useEffect(() => { refreshHistory(); }, [refreshHistory]);
   useEffect(() => {
     try {
       const ik = (typeof window !== "undefined") && window.__KNSL_INTAKE__;
@@ -2636,16 +2731,34 @@ function ContractReview() {
       if (useAI && !aiHits && crResult.aiError) setErr(formatAiError(crResult.aiError, getAiProvider()) + " (hasil heuristik tetap ditampilkan)");
       await crSaveRecord(record);
       await crAudit("analyze_contract", record.name + " · skor " + risk.score);
-      persistContractReview(record);
-      setRec(record); setHistory(await crListIndex()); setStage("done"); setTab("summary");
+      await persistContractReview(record);
+      setRec(record);
+      await refreshHistory();
+      setStage("done"); setTab("summary");
     } catch (e) { setErr(e.message || "Analisa gagal."); setStage("idle"); }
   };
 
-  const loadFromHistory = async (id) => {
-    const r = await crGet("cr:doc:" + id);
-    if (r) { setRec(r); setText(""); setFile({ name: r.name }); setStage("done"); setTab("summary"); setCtx(r.ctx || ctx); }
+  const loadFromHistory = async (item) => {
+    const meta = typeof item === "object" ? item : history.find((h) => h.id === item);
+    const id = meta?.id || item;
+    const r = await loadContractReviewRecord(id, meta, async (localId) => crGet("cr:doc:" + localId));
+    if (r) {
+      setRec(r);
+      setText("");
+      setFile({ name: r.name });
+      setStage("done");
+      setTab("summary");
+      setCtx(r.ctx || ctx);
+    }
   };
-  const removeHistory = async (id, e) => { e.stopPropagation(); await crDeleteRecord(id); setHistory(await crListIndex()); if (rec && rec.id === id) { setRec(null); setStage("idle"); } };
+  const removeHistory = async (item, e) => {
+    e.stopPropagation();
+    const meta = typeof item === "object" ? item : history.find((h) => h.id === item);
+    const id = meta?.id || item;
+    await removeContractReviewRecord(id, { remote: meta?.remote }, crDeleteRecord);
+    await refreshHistory();
+    if (rec && (rec.id === id || rec.cloudId === id)) { setRec(null); setStage("idle"); }
+  };
 
   const busy = stage === "extracting" || stage === "reviewing";
   const flagged = rec ? rec.clauses.filter((c) => c.review.risk !== "low") : [];
@@ -2711,17 +2824,22 @@ function ContractReview() {
 
           {/* history */}
           <div className="glass rise" style={{ padding: 18, animationDelay: ".08s" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}><History size={15} className="gold-text" /><span style={{ fontSize: 13.5, fontWeight: 600 }}>Riwayat Tinjauan</span><span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted)" }}>{history.length}</span></div>
-            {history.length === 0 && <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>Belum ada tinjauan tersimpan.</p>}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <History size={15} className="gold-text" />
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Riwayat Tinjauan</span>
+              {isRemoteHistoryEnabled() && <span className="badge badge-low" style={{ fontSize: 10 }}>Cloud</span>}
+              <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted)" }}>{history.length}</span>
+            </div>
+            {history.length === 0 && <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>Belum ada tinjauan tersimpan{isRemoteHistoryEnabled() ? " di cloud" : ""}.</p>}
             <div style={{ display: "grid", gap: 8 }}>
               {history.map((h) => (
-                <div key={h.id} onClick={() => loadFromHistory(h.id)} className="glass" style={{ padding: "10px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: rec && rec.id === h.id ? "rgba(31,179,126,0.08)" : undefined }}>
+                <div key={h.id} onClick={() => loadFromHistory(h)} className="glass" style={{ padding: "10px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: rec && (rec.id === h.id || rec.cloudId === h.id) ? "rgba(31,179,126,0.08)" : undefined }}>
                   <FileText size={15} style={{ color: "var(--muted)", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--muted)" }}>{h.clauses} klausul · skor {h.score != null ? h.score : "—"}</div>
+                    <div style={{ fontSize: 11, color: "var(--muted)" }}>{h.clauses} klausul · skor {h.score != null ? h.score : "—"}{h.remote ? " · cloud" : ""}</div>
                   </div>
-                  <Trash2 size={14} style={{ color: "var(--muted-2)", flexShrink: 0 }} onClick={(e) => removeHistory(h.id, e)} />
+                  <Trash2 size={14} style={{ color: "var(--muted-2)", flexShrink: 0 }} onClick={(e) => removeHistory(h, e)} />
                 </div>
               ))}
             </div>
@@ -2729,7 +2847,11 @@ function ContractReview() {
 
           <div className="glass" style={{ padding: 14, display: "flex", gap: 9, alignItems: "flex-start", background: "linear-gradient(150deg,rgba(216,192,138,0.06),rgba(8,10,9,0.2))" }}>
             <Lock size={14} className="gold-text" style={{ flexShrink: 0, marginTop: 2 }} />
-            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: 0, lineHeight: 1.55 }}>Pemrosesan & penyimpanan berlangsung di sisi klien (browser). Setiap aksi dicatat di audit log lokal. Untuk enkripsi at-rest, RBAC server, dan retensi multi-pengguna, perlu lapisan backend (lihat dokumentasi).</p>
+            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: 0, lineHeight: 1.55 }}>
+              {isRemoteHistoryEnabled()
+                ? "Riwayat tinjauan tersimpan di akun cloud (Supabase). Salinan lokal tetap ada di browser untuk akses cepat."
+                : "Pemrosesan di browser; riwayat lokal per perangkat. Login Supabase untuk sinkron cloud."}
+            </p>
           </div>
         </div>
 
