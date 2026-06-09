@@ -14,7 +14,7 @@ import {
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
-import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL } from "./services/pasalSearch.js";
+import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm } from "./services/pasalSearch.js";
 import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
 import { AGENT_IDS } from "./agents/registry.js";
@@ -877,11 +877,14 @@ function Analysis({ seed }) {
     refreshHistory();
   };
 
+  const [runError, setRunError] = useState("");
+
   const doRun = async (input, flt) => {
     if (!input || !input.trim()) return;
     setLoading(true);
     setAiBusy(false);
     setAiWanted(useAI);
+    setRunError("");
     try {
       await new Promise((r) => setTimeout(r, 250));
       if (useAI) {
@@ -893,14 +896,18 @@ function Analysis({ seed }) {
           setActiveHistoryId(null);
           persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: r.source, aiStatus: r.aiStatus, payload: r }).then(() => refreshHistory());
         } catch (e) {
-          const heur = runPipeline(input, flt);
-          heur.source = "heuristic";
-          heur.aiStatus = "error";
-          heur.aiError = formatAiError(e.message || e, getAiProvider());
-          setData(heur);
-          setTab("facts");
-          setActiveHistoryId(null);
-          persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "error", payload: heur }).then(() => refreshHistory());
+          try {
+            const heur = runPipeline(input, flt);
+            heur.source = "heuristic";
+            heur.aiStatus = "error";
+            heur.aiError = formatAiError(e.message || e, getAiProvider());
+            setData(heur);
+            setTab("facts");
+            setActiveHistoryId(null);
+            persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "error", payload: heur }).then(() => refreshHistory());
+          } catch (heurErr) {
+            setRunError(String(heurErr.message || heurErr));
+          }
         }
       } else {
         const heur = runPipeline(input, flt);
@@ -911,6 +918,8 @@ function Analysis({ seed }) {
         setActiveHistoryId(null);
         persistCaseAnalysis({ title: input.slice(0, 100), lawFilter: flt, source: "heuristic", aiStatus: "off", payload: heur }).then(() => refreshHistory());
       }
+    } catch (e) {
+      setRunError(String(e.message || e));
     } finally {
       setLoading(false);
       setAiBusy(false);
@@ -920,8 +929,8 @@ function Analysis({ seed }) {
   useEffect(() => { if (seed && seed.q) { setQ(seed.q); doRun(seed.q, "all"); } }, [seed]);
 
   const cls = useMemo(() => {
-    if (!data) return null;
-    return classifyDomain({ results: data.rs.retrieved.map((r) => ({ l: r.law })), outside: data.rs.outside });
+    if (!data?.rs?.retrieved) return null;
+    return classifyDomain({ results: data.rs.retrieved.map((r) => ({ l: r.law })), outside: data.rs.outside || [] });
   }, [data]);
 
   const catColor = (c) => (c === "criminal" ? "#ff9a8b" : c === "civil" ? "#8fb6d6" : c === "corporate" ? "#d8c08a" : "#9fd6bf");
@@ -957,6 +966,11 @@ function Analysis({ seed }) {
             </select>
             <textarea className="field" rows={9} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tempel kronologi lengkap di sini..." />
             <button className="btn-primary" onClick={() => run()} disabled={loading}>{loading ? <><Activity size={16} /> {aiBusy ? "AI menganalisa kronologi…" : "Menjalankan pipeline…"}</> : <><Zap size={16} /> Jalankan Analisa</>}</button>
+            {runError && (
+              <div style={{ padding: "10px 12px", borderRadius: 9, fontSize: 12, color: "#ff9a8b", background: "rgba(220,68,55,0.08)", border: "1px solid rgba(220,68,55,0.28)" }}>
+                <AlertTriangle size={13} style={{ verticalAlign: "middle", marginRight: 6 }} />{runError}
+              </div>
+            )}
             <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 12.5, color: "var(--silver)", marginTop: -2 }}>
               <input type="checkbox" checked={useAI} onChange={(e) => setUseAI(e.target.checked)} style={{ accentColor: "#1fb37e", width: 15, height: 15 }} />
               <Sparkles size={13} className="gold-text" /> Agen AI (Fakta, Isu &amp; rerank Pasal) — uji unsur tetap deterministik
