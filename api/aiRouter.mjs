@@ -74,12 +74,18 @@ async function callGemini({ system, user, maxTokens, model }) {
 
 async function callGroq({ system, user, maxTokens, model }) {
   const key = process.env.GROQ_API_KEY;
-  if (!key) throw new Error("GROQ_API_KEY belum di-set. Dapatkan gratis di https://console.groq.com/keys");
+  if (!key) {
+    throw new Error(
+      "GROQ_API_KEY belum di-set. Lokal: tambahkan GROQ_API_KEY=gsk_... di .env.local lalu restart `npm run dev`. " +
+      "Vercel: set di Environment Variables lalu redeploy. Key gratis: https://console.groq.com/keys"
+    );
+  }
   const m = model || process.env.GROQ_MODEL || DEFAULT_MODELS.groq;
+  const base = (process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/$/, "");
   const messages = [];
   if (system) messages.push({ role: "system", content: system });
   messages.push({ role: "user", content: user });
-  const resp = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
+  const resp = await fetchWithTimeout(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: m, messages, max_tokens: maxTokens || 2000, temperature: 0.2 }),
