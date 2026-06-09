@@ -1,19 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Bot, Trash2, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
-import { dispatchKnslChatAgent } from "../../agents/chatDispatcher.js";
-import { getKnslAgent, getKnslAgentLabel } from "../../knslAiAgents.js";
+import { askLegalChat, SUGGESTED_PROMPTS } from "../../agents/legalChatAgent.js";
 import {
   loadChatMessages,
   saveChatMessages,
   clearChatMessages,
   buildWelcomeContent,
-  isChatCloudSyncActive,
 } from "../../services/legalChatStore.js";
 import AiProviderPicker from "../../AiProviderPicker.jsx";
-import KnslAgentPicker from "../../KnslAgentPicker.jsx";
-import { getAiProvider } from "../../aiProviders.js";
-import { getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
+import { getAiProvider, getLastAiMeta, getLastAiError, getProviderLabel } from "../../aiProviders.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useLocalUser } from "../../hooks/useLocalUser.js";
 import { isSupabaseConfigured } from "../../lib/supabase.js";
@@ -142,32 +137,23 @@ export default function LegalChat() {
     setLoading(true);
 
     try {
-      const agentId = getKnslAgent();
-      const { text: reply } = await dispatchKnslChatAgent({
-        agentId,
-        messages: next,
-        provider: getAiProvider(),
-      });
+      const reply = await askLegalChat({ messages: next });
       const assistantMsg = {
         id: msgId(),
         role: "assistant",
         content: reply,
         createdAt: Date.now(),
-        agentId,
       };
       const updated = [...next, assistantMsg];
       setMessages(updated);
       await persist(updated);
       const meta = getLastAiMeta();
-      let note = "";
       if (meta?.provider) {
-        note = t("chat.answeredVia", {
+        setAiNote(t("chat.answeredVia", {
           provider: getProviderLabel(meta.provider),
           model: meta.model ? ` · ${meta.model}` : "",
-        });
+        }));
       }
-      note += t("chat.answeredViaAgent", { agent: getKnslAgentLabel(agentId, locale) });
-      if (note) setAiNote(note);
     } catch (e) {
       const errMsg = getLastAiError() || e.message || t("chat.errorContact");
       setError(errMsg);
@@ -208,15 +194,9 @@ export default function LegalChat() {
       <div className="legal-chat-header glass">
         <p className="legal-chat-disclaimer legal-chat-intro">
           {t("chat.disclaimer")}
-          {isChatCloudSyncActive() && (
-            <span style={{ display: "block", marginTop: 4, color: "var(--emerald-bright)", fontSize: 11 }}>
-              {t("chat.cloudSync")}
-            </span>
-          )}
         </p>
 
-        <div className="legal-chat-toolbar legal-chat-toolbar--desktop legal-chat-toolbar-pickers">
-          <KnslAgentPicker compact />
+        <div className="legal-chat-toolbar legal-chat-toolbar--desktop">
           <AiProviderPicker compact />
           <button type="button" className="legal-chat-clear-btn" onClick={handleClear} title={t("chat.clearHistory")} aria-label={t("chat.clearHistory")}>
             <Trash2 size={15} />
@@ -224,7 +204,6 @@ export default function LegalChat() {
         </div>
 
         <div className="legal-chat-toolbar legal-chat-toolbar--mobile">
-          <KnslAgentPicker minimal />
           <AiProviderPicker minimal />
           <button
             type="button"
@@ -243,7 +222,6 @@ export default function LegalChat() {
 
       {aiPanelOpen && (
         <div className="legal-chat-ai-panel glass">
-          <KnslAgentPicker compact />
           <AiProviderPicker compact />
         </div>
       )}
