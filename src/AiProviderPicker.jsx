@@ -29,7 +29,7 @@ export default function AiProviderPicker({ compact, minimal }) {
     >
       {AI_PROVIDERS.map((p) => (
         <option key={p.id} value={p.id}>
-          {p.label}{p.free ? " (gratis)" : " (berbayar)"}
+          {p.label}
         </option>
       ))}
     </select>
@@ -55,7 +55,6 @@ export default function AiProviderPicker({ compact, minimal }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
           <Sparkles size={12} className="gold-text" />
           <span>Provider AI</span>
-          {cur.free && <span className="badge badge-low" style={{ marginLeft: "auto", fontSize: 9.5, padding: "2px 7px" }}>Gratis</span>}
         </div>
         {selectEl}
         <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.45 }}>{cur.hint}</p>
@@ -73,7 +72,6 @@ export default function AiProviderPicker({ compact, minimal }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <Sparkles size={15} className="gold-text" />
         <span style={{ fontSize: 13, fontWeight: 600 }}>Provider AI</span>
-        {cur.free && <span className="badge badge-low" style={{ marginLeft: "auto" }}>Gratis</span>}
       </div>
       {selectEl}
       <p style={{ fontSize: 11, color: "var(--muted)", margin: "8px 0 0", lineHeight: 1.45 }}>{cur.hint}</p>
