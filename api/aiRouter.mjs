@@ -15,11 +15,39 @@ const DEFAULT_MODELS = {
   claude: "claude-sonnet-4-20250514",
 };
 
+const FETCH_TIMEOUT_MS = Number(process.env.AI_FETCH_TIMEOUT_MS) || 55000;
+
+function isServerlessHost() {
+  return !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY);
+}
+
+async function fetchWithTimeout(url, options = {}, ms = FETCH_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      throw new Error(`AI timeout (${Math.round(ms / 1000)}s). Coba lagi atau ganti provider.`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function autoProviderOrder() {
+  const order = ["gemini", "groq", "claude"];
+  if (!isServerlessHost()) order.splice(2, 0, "ollama");
+  return order;
+}
+
 function pickAutoProvider() {
   if (process.env.GEMINI_API_KEY) return "gemini";
   if (process.env.GROQ_API_KEY) return "groq";
   if (process.env.ANTHROPIC_API_KEY) return "claude";
-  return "ollama";
+  if (!isServerlessHost()) return "ollama";
+  throw new Error("GEMINI_API_KEY atau GROQ_API_KEY belum di-set di Vercel. Ollama tidak tersedia di server cloud.");
 }
 
 async function callGemini({ system, user, maxTokens, model }) {
@@ -36,7 +64,7 @@ async function callGemini({ system, user, maxTokens, model }) {
       responseMimeType: "application/json",
     },
   };
-  const resp = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const resp = await fetchWithTimeout(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) throw new Error(data?.error?.message || `Gemini HTTP ${resp.status}`);
   const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
@@ -51,7 +79,7 @@ async function callGroq({ system, user, maxTokens, model }) {
   const messages = [];
   if (system) messages.push({ role: "system", content: system });
   messages.push({ role: "user", content: user });
-  const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const resp = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: m, messages, max_tokens: maxTokens || 2000, temperature: 0.2 }),
@@ -69,7 +97,10 @@ async function callOllama({ system, user, maxTokens, model }) {
   const messages = [];
   if (system) messages.push({ role: "system", content: system });
   messages.push({ role: "user", content: user });
-  const resp = await fetch(`${host}/api/chat`, {
+  if (isServerlessHost()) {
+    throw new Error("Ollama tidak tersedia di Vercel. Gunakan Gemini atau Groq (set API key di Environment Variables).");
+  }
+  const resp = await fetchWithTimeout(`${host}/api/chat`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ model: m, messages, stream: false, options: { num_predict: maxTokens || 2000, temperature: 0.2 } }),
@@ -85,7 +116,7 @@ async function callClaude({ system, user, maxTokens, model }) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY belum di-set (Claude berbayar). Gunakan Gemini/Groq/Ollama gratis.");
   const m = model || process.env.CLAUDE_MODEL || DEFAULT_MODELS.claude;
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: m, max_tokens: maxTokens || 2000, system: system || undefined, messages: [{ role: "user", content: user }] }),
@@ -106,13 +137,15 @@ export async function routeAI(payload) {
 
   let provider = String(payload.provider || "auto").toLowerCase();
   if (provider === "auto") {
-    const order = ["gemini", "groq", "ollama", "claude"];
+    const order = autoProviderOrder();
     const available = order.filter((p) => {
       const meta = PROVIDER_META[p];
-      if (!meta.keyEnv) return true;
+      if (!meta.keyEnv) return !isServerlessHost();
       return !!process.env[meta.keyEnv];
     });
-    if (!available.length) available.push("ollama");
+    if (!available.length) {
+      throw new Error("Tidak ada provider AI yang dikonfigurasi. Set GEMINI_API_KEY atau GROQ_API_KEY di Vercel lalu redeploy.");
+    }
     let lastErr;
     for (const p of available) {
       try { return await CALLERS[p]({ system, user, maxTokens, model }); }
