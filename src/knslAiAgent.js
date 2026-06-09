@@ -6,6 +6,12 @@
  * ========================================================================== */
 
 import { getAiProvider, getAiProxyEndpoint, setLastAiMeta, setLastAiError, formatAiError } from "./aiProviders.js";
+import {
+  CASE_SYSTEM,
+  CASE_SCHEMA,
+  CASE_RERANK_SYSTEM,
+  CR_SYSTEM_BASE,
+} from "./agents/prompts/index.js";
 
 export const DEFAULT_MODEL = "auto";
 
@@ -59,27 +65,6 @@ export const callClaude = callLLM;
 
 /* ===================== CASE ANALYSIS AGENT ===================== */
 
-const CASE_SYSTEM = `Anda adalah agen analisa hukum Indonesia senior (advokat/jaksa) yang menstrukturkan kronologi perkara.
-
-PRINSIP WAJIB:
-1. Pecah kronologi menjadi fakta atomik: SIAPA melakukan APA terhadap SIAPA, KAPAN, DI MANA.
-2. Hormati negasi ("belum membayar" ≠ "sudah membayar").
-3. certainty: "alleged" untuk dugaan (diduga, disinyalir, menurut laporan); "asserted" bila tegas; "uncertain" bila tidak jelas.
-4. externalLabel=true bila pernyataan adalah label pihak luar (polisi, jaksa, media) — jangan diadopsi sebagai fakta terbukti.
-5. JANGAN sebut pasal/UU di fakta maupun isu (itu tahap terpisah).
-6. Identifikasi isu TERSIRAT: unsur perencanaan, wanprestasi, pembuktian prosedural, korporasi, dll.
-7. seedKeywords = istilah hukum Indonesia untuk retrieval pasal (contoh: "pembunuhan dengan rencana", "wanprestasi perjanjian").
-8. missingFacts = bukti/fakta yang masih kurang untuk analisa lengkap.
-9. JANGAN memvonis atau menyimpulkan bersalah/tidak bersalah.
-
-Kembalikan JSON KETAT saja (tanpa markdown/prosa di luar JSON).`;
-
-const CASE_SCHEMA = `{
-  "facts":[{"category":"party|timeline|transaction|document|action|financial|relationship","statement":string,"certainty":"asserted|alleged|uncertain","externalLabel":boolean}],
-  "missingFacts":[{"category":string,"description":string,"neededFor":string}],
-  "issues":[{"category":"civil|criminal|corporate|procedural","statement":string,"confidence":"High|Moderate–High|Moderate|Low|Not assessable","factIndexes":[number],"seedKeywords":string}]
-}`;
-
 export const CaseAnalysisAgent = {
   /**
    * Stage 1–2 AI: extract facts & issues from chronology.
@@ -120,10 +105,7 @@ export const CaseAnalysisAgent = {
     const factList = (facts || []).slice(0, 14).map((f) => `${f.id}: ${f.statement}`).join("\n");
     const issueList = (issues || []).slice(0, 8).map((i) => `- [${i.category}] ${i.statement}`).join("\n");
 
-    const system = `Anda ahli hukum Indonesia. Tugas: menilai ulang relevansi pasal terhadap fakta & isu perkara.
-ATURAN: Hanya gunakan id pasal dari daftar kandidat. Jangan tambah pasal baru. Jangan memvonis.
-Kembalikan JSON ketat: {"rankings":[{"id":string,"relevance":number,"reason":string}]} 
-relevance = 0-100. Urutkan dari paling relevan.`;
+    const system = CASE_RERANK_SYSTEM;
 
     const user = `FAKTA:\n${factList}\n\nISU:\n${issueList}\n\nKANDIDAT PASAL:\n${JSON.stringify(candidates)}`;
 
@@ -154,17 +136,6 @@ relevance = 0-100. Urutkan dari paling relevan.`;
 };
 
 /* ===================== CONTRACT REVIEW AGENT ===================== */
-
-const CR_SYSTEM_BASE = `Anda adalah agen tinjauan kontrak senior berdasarkan hukum Indonesia dan praktik komersial.
-
-PRINSIP:
-1. Analisis dari perspektif pihak yang ditinjau — lindungi kepentingannya tanpa mengabaikan keseimbangan.
-2. Identifikasi risiko konkret: tanggung jawab tak terbatas, diskresi sepihak, pengakhiran sepihak, hukum asing, indemnity luas, dll.
-3. deficiency = bagian yang kurang/spesifik terlalu sempit (mis. force majeure tanpa catch-all).
-4. suggestedRedraft = rumusan pengganti siap pakai (gaya kontrak Indonesia).
-5. JANGAN memvonis; berikan analisis risiko & saran negosiasi.
-6. Jawab dalam Bahasa Indonesia.
-Kembalikan JSON KETAT saja.`;
 
 export const ContractReviewAgent = {
   /** Build contract-level context for cross-clause awareness. */
