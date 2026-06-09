@@ -38,17 +38,35 @@ export async function askLegalChat({ messages, provider }) {
   return String(text).trim();
 }
 
+function summarizeAiFailure(reason) {
+  const m = String(reason || "").toLowerCase();
+  if (m.includes("groq_api_key") || m.includes("groq") && m.includes("belum membaca")) {
+    return "Groq belum tersambung di server.";
+  }
+  if (m.includes("api key") || m.includes("invalid") || m.includes("permission")) {
+    return "API key provider AI perlu dicek.";
+  }
+  if (m.includes("quota") || m.includes("rate limit") || m.includes("kuota")) {
+    return "Kuota provider AI sedang terbatas.";
+  }
+  if (m.includes("timeout")) {
+    return "Provider AI timeout.";
+  }
+  return reason ? "Provider AI belum dapat menjawab." : "";
+}
+
 export function buildHeuristicChatReply(query, reason = "") {
   const hits = searchPasal(query, "all").slice(0, 6);
   const outside = outsideHits(query).slice(0, 4);
+  const status = summarizeAiFailure(reason);
   const lines = [
     "**Mode heuristik offline**",
     "",
     "AI cloud belum tersambung, jadi saya tampilkan rujukan awal dari indeks KNSL yang bisa dicek manual.",
   ];
 
-  if (reason) {
-    lines.push("", `**Status AI:** ${reason}`);
+  if (status) {
+    lines.push("", `**Status AI:** ${status}`);
   }
 
   if (hits.length) {
