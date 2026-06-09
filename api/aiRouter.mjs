@@ -36,16 +36,18 @@ async function fetchWithTimeout(url, options = {}, ms = FETCH_TIMEOUT_MS) {
   }
 }
 
+// "Otomatis (gratis dulu)" hanya memakai provider gratis. Claude (berbayar)
+// sengaja TIDAK masuk rantai auto agar tidak memunculkan error billing yang
+// membingungkan saat kuota gratis habis — pilih Claude eksplisit bila diinginkan.
 function autoProviderOrder() {
-  const order = ["gemini", "groq", "claude"];
-  if (!isServerlessHost()) order.splice(2, 0, "ollama");
+  const order = ["gemini", "groq"];
+  if (!isServerlessHost()) order.push("ollama");
   return order;
 }
 
 function pickAutoProvider() {
   if (process.env.GEMINI_API_KEY) return "gemini";
   if (process.env.GROQ_API_KEY) return "groq";
-  if (process.env.ANTHROPIC_API_KEY) return "claude";
   if (!isServerlessHost()) return "ollama";
   throw new Error("GEMINI_API_KEY atau GROQ_API_KEY belum di-set di Vercel. Ollama tidak tersedia di server cloud.");
 }
