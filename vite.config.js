@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { routeAI } from "./api/aiRouter.mjs";
+import { routeAI } from "./server-ai-router.mjs";
 import { apiDevMiddleware } from "./scripts/api-dev-middleware.mjs";
 
 /**
@@ -54,7 +54,7 @@ function aiDevProxy() {
           return;
         }
         if (req.method === "GET") {
-          const { getAIStatus } = await import("./api/aiRouter.mjs");
+          const { getAIStatus } = await import("./server-ai-router.mjs");
           sendJson(res, 200, getAIStatus());
           return;
         }
