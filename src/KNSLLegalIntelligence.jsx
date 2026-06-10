@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Scale, FileSignature, BookOpen, ShieldCheck,
   Search, Bell, Menu, X, ChevronRight, Gavel, Clock,
   TrendingUp, AlertTriangle, CheckCircle2, Sparkles, FileText,
-  Activity, Settings, Zap, Info,
+  Activity, Settings, Zap, Info, Moon, Sun,
   FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History, LogOut, User, MessageCircle,
 } from "lucide-react";
 import {
@@ -99,6 +99,21 @@ const ACTIONS = {
   ],
   lain: ["Konsultasikan dengan advokat untuk menentukan ranah hukum dan strategi yang tepat."],
 };
+
+const THEME_STORAGE_KEY = "knsl:color-theme";
+
+function getInitialColorTheme() {
+  if (typeof window === "undefined") return "dark";
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch { /* ignore */ }
+  return window.matchMedia?.("(prefers-color-scheme: light)")?.matches ? "light" : "dark";
+}
+
+function setStoredColorTheme(theme) {
+  try { window.localStorage.setItem(THEME_STORAGE_KEY, theme); } catch { /* ignore */ }
+}
 function classifyDomain(data) {
   const c = { KUHP: 0, PT: 0, UUD: 0 };
   data.results.forEach((r) => { const l = r.l; if (l === "KUHP" || l.indexOf("UU ITE") === 0) c.KUHP++; else if (l.indexOf("UU PT") === 0 || l.indexOf("UU 37/2004") === 0 || l.indexOf("UU 30/1999") === 0 || l.indexOf("UU 4/2023") === 0) c.PT++; else c.UUD++; });
@@ -823,9 +838,10 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
 }
 
 /* ---------- topbar ---------- */
-function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
+function Topbar({ title, subtitle, onMenu, onGlobalSearch, action, colorTheme, onToggleTheme }) {
   const { t } = useI18n();
   const [v, setV] = useState("");
+  const isLight = colorTheme === "light";
   return (
     <header className="topbar">
       <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -842,6 +858,15 @@ function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
             value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && v.trim()) onGlobalSearch(v.trim()); }} />
         </div>
         {action}
+        <button
+          type="button"
+          className="glass glass-hover theme-toggle"
+          onClick={onToggleTheme}
+          aria-label={isLight ? "Aktifkan dark mode" : "Aktifkan light mode"}
+          title={isLight ? "Dark mode" : "Light mode"}
+        >
+          {isLight ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
         <div className="glass glass-hover" style={{ position: "relative", width: 44, height: 44, display: "grid", placeItems: "center", cursor: "pointer", borderRadius: 14 }}>
           <Bell size={18} style={{ color: "var(--silver)" }} />
           <span style={{ position: "absolute", top: 11, right: 12, width: 7, height: 7, borderRadius: "50%", background: "var(--emerald-bright)", boxShadow: "0 0 8px var(--emerald-bright)" }} />
@@ -3129,11 +3154,19 @@ export default function App() {
   const [dashEditing, setDashEditing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [seed, setSeed] = useState(null);
+  const [colorTheme, setColorTheme] = useState(getInitialColorTheme);
 
   useEffect(() => {
     setActive(activeFromRoute);
     if (activeFromRoute !== "dashboard") setDashEditing(false);
   }, [activeFromRoute]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.theme = colorTheme;
+    }
+    setStoredColorTheme(colorTheme);
+  }, [colorTheme]);
 
   const goTo = useCallback((id) => {
     const path = ACTIVE_TO_ROUTE[id] || ROUTES.APP;
@@ -3157,6 +3190,7 @@ export default function App() {
     navigate(ROUTES.LOGIN, { replace: true });
   };
   const globalSearch = (q) => { setSeed({ q, n: Date.now() }); goTo("analysis"); setNavOpen(false); };
+  const toggleColorTheme = () => setColorTheme((theme) => (theme === "light" ? "dark" : "light"));
   const sendIntake = (target, text, name) => {
     if (target === "contract") { if (typeof window !== "undefined") window.__KNSL_INTAKE__ = { text, name }; goTo("contract"); }
     else if (target === "analysis") { setSeed({ q: text, n: Date.now() }); goTo("analysis"); }
@@ -3164,7 +3198,7 @@ export default function App() {
     setNavOpen(false);
   };
   return (
-    <div className="knsl">
+    <div className="knsl" data-theme={colorTheme}>
       <style>{STYLES}</style>
       <div className="shell">
         {navOpen && <div className="backdrop" onClick={() => setNavOpen(false)} />}
@@ -3173,6 +3207,8 @@ export default function App() {
           <Topbar
             title={meta[active][0]} subtitle={meta[active][1]}
             onMenu={() => setNavOpen(true)} onGlobalSearch={globalSearch}
+            colorTheme={colorTheme}
+            onToggleTheme={toggleColorTheme}
             action={active === "dashboard" ? (
               <div
                 className="glass glass-hover"
