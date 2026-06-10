@@ -773,7 +773,7 @@ export function LoginScreen({ onLogin }) {
 }
 
 /* ---------- sidebar ---------- */
-function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
+function Sidebar({ active, onNavigate, open, onClose, user, onLogout, colorTheme }) {
   const { t } = useI18n();
   const items = [
     { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
@@ -788,7 +788,7 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
   ];
   const pick = (id) => { onNavigate(id); onClose(); };
   return (
-    <aside className={`glass sidebar ${open ? "open" : ""}`} style={{ borderRadius: 0 }}>
+    <aside className={`glass sidebar sidebar--${colorTheme || "dark"} ${open ? "open" : ""}`} style={{ borderRadius: 0 }}>
       <div className="sidebar-brand">
         <div style={{ display: "flex", alignItems: "center", gap: 13, padding: "0 6px 4px" }}>
           <LogoMark size={46} />
@@ -815,7 +815,7 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
         </nav>
         <LanguageSwitcher compact />
         <div className="sidebar-foot">
-          <div className="glass" style={{ padding: 16, marginTop: 18, background: "linear-gradient(150deg,rgba(19,133,92,0.14),rgba(8,10,9,0.2))" }}>
+          <div className="glass sidebar-ai-card" style={{ padding: 16, marginTop: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <Sparkles size={15} className="gold-text" /><span className="gold-text" style={{ fontSize: 12.5, fontWeight: 600 }}>{t("nav.aiActive")}</span>
             </div>
@@ -3202,7 +3202,7 @@ export default function App() {
       <style>{STYLES}</style>
       <div className="shell">
         {navOpen && <div className="backdrop" onClick={() => setNavOpen(false)} />}
-        <Sidebar active={active} onNavigate={goTo} open={navOpen} onClose={() => setNavOpen(false)} user={user} onLogout={logout} />
+        <Sidebar active={active} onNavigate={goTo} open={navOpen} onClose={() => setNavOpen(false)} user={user} onLogout={logout} colorTheme={colorTheme} />
         <main className="main">
           <Topbar
             title={meta[active][0]} subtitle={meta[active][1]}
