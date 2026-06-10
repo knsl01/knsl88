@@ -1,0 +1,545 @@
+/* ============================================================
+   premium.css — Drop into: src/premium.css
+   Import once at the top of KNSLLegalIntelligence.jsx:
+     import './premium.css';
+
+   Sections:
+     1. CSS variables (gold palette)
+     2. Login page — scene wrapper + glass card overrides
+     3. Scene elements (aurora, floor, hologram, holo-docs)
+     4. Lady Justice figure (head, body, yoke, scales)
+     5. Animations (all gated on prefers-reduced-motion)
+     6. Shell / dashboard premium layer
+     7. Post-login entrance animation
+     8. Responsive
+     9. Integration overrides (nested legacy login + Supabase auth)
+   ============================================================ */
+
+/* ── 1. Variables ─────────────────────────────────────────── */
+:root {
+  --knsl-gold:      #d4af37;
+  --knsl-gold-hi:   #f3e2a4;
+  --knsl-gold-deep: #8a6d1f;
+  --knsl-em:        #1fb37e;
+  --knsl-em-dim:    rgba(31,179,126,0.55);
+  --knsl-obsidian:  #070908;
+}
+
+/* ── 2. Login page ────────────────────────────────────────── */
+.login-screen {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(1300px 800px at 42% -12%, rgba(19,133,92,0.10) 0%, transparent 62%),
+    radial-gradient(900px 600px at 96% 110%,  rgba(212,175,55,0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #070908 0%, #040605 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+/* Dark-emerald veil on exit — no white flash */
+.login-screen::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 60;
+  pointer-events: none; opacity: 0;
+  background: radial-gradient(1000px 700px at 50% 50%,
+    rgba(12,74,51,0.72), #040605 72%);
+  transition: opacity 0.55s ease;
+}
+.login-screen.is-exiting::after { opacity: 1; }
+
+/* Remove the original ambient blob (replaced by scene aurora) */
+.login-ambient { display: none !important; }
+
+/* Glass login card */
+.login-card {
+  position: relative; z-index: 10;
+  width: 100%; max-width: 460px;
+  padding: 40px 36px 30px;
+  border-radius: 22px !important;
+  background: linear-gradient(180deg,
+    rgba(22,29,26,0.76) 0%, rgba(12,16,14,0.70) 100%) !important;
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 48px 100px -54px rgba(0,0,0,0.98),
+    0 0 0 1px rgba(0,0,0,0.4);
+}
+/* Gold hairline top */
+.login-card::before {
+  content: ''; position: absolute;
+  left: 24px; right: 24px; top: 0; height: 1px; z-index: 2;
+  background: linear-gradient(90deg, transparent,
+    rgba(212,175,55,0.65), transparent);
+}
+/* Rotating emerald/gold border conic */
+@property --knsl-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.login-card::after {
+  content: ''; position: absolute; inset: -1px;
+  border-radius: 23px; padding: 1px; z-index: 0; pointer-events: none;
+  background: conic-gradient(from var(--knsl-ang, 0deg),
+    transparent 0deg, rgba(31,179,126,0.55) 40deg, transparent 110deg,
+    transparent 250deg, rgba(212,175,55,0.55) 300deg, transparent 340deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0.55;
+}
+
+/* Make all card children sit above the pseudo-element */
+.login-card > * { position: relative; z-index: 1; }
+
+/* Input fields */
+.login-card input[type="text"],
+.login-card input[type="password"],
+.login-card input[type="email"] {
+  background: rgba(0,0,0,0.34) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 12px !important;
+  color: #eafff4 !important;
+  transition: border-color 0.3s, box-shadow 0.3s !important;
+}
+.login-card input:focus {
+  border-color: rgba(31,179,126,0.55) !important;
+  box-shadow: 0 0 0 4px rgba(31,179,126,0.12),
+              0 0 22px -6px rgba(31,179,126,0.45) !important;
+  outline: none !important;
+}
+
+/* Primary action button */
+.login-card .login-primary-btn,
+.login-card button[type="submit"],
+.login-card .btn-login {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #149065, #0c4a33) !important;
+  border: 1px solid rgba(31,179,126,0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px -12px rgba(19,133,92,0.85) !important;
+  color: #eafff4 !important;
+  font-weight: 600 !important;
+  transition: transform 0.22s, filter 0.22s, box-shadow 0.3s !important;
+}
+.login-card .login-primary-btn:hover,
+.login-card button[type="submit"]:hover {
+  transform: scale(1.025) !important;
+  filter: brightness(1.1);
+  box-shadow: 0 16px 40px -14px rgba(19,133,92,0.95),
+              0 0 22px -6px rgba(31,179,126,0.5) !important;
+}
+
+/* ── 3. Scene wrapper ─────────────────────────────────────── */
+.knsl-scene {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden;
+}
+.knsl-pc {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+
+/* Aurora blobs */
+.knsl-aurora { position: absolute; inset: 0; }
+.knsl-au {
+  position: absolute; border-radius: 50%; filter: blur(110px);
+}
+.knsl-au1 {
+  width: 56vw; height: 56vw; min-width: 540px; min-height: 540px;
+  top: -24%; left: -10%;
+  background: radial-gradient(circle, rgba(31,179,126,0.30), transparent 66%);
+  opacity: 0.55;
+}
+.knsl-au2 {
+  width: 44vw; height: 44vw; min-width: 440px; min-height: 440px;
+  bottom: -26%; right: -12%;
+  background: radial-gradient(circle, rgba(212,175,55,0.28), transparent 66%);
+  opacity: 0.34;
+}
+.knsl-au3 {
+  width: 38vw; height: 38vw; min-width: 380px; min-height: 380px;
+  top: 42%; left: 30%;
+  background: radial-gradient(circle, rgba(12,74,51,0.9), transparent 70%);
+  opacity: 0.5;
+}
+
+/* Perspective grid floor */
+.knsl-floor {
+  position: absolute; left: -10%; right: -10%; bottom: 0; height: 42%;
+  background:
+    repeating-linear-gradient(0deg,  rgba(31,179,126,0.06) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(31,179,126,0.05) 0 1px, transparent 1px 58px);
+  transform: perspective(620px) rotateX(56deg);
+  transform-origin: bottom center;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 70%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 70%);
+  opacity: 0.45;
+}
+
+/* ── 4. Hologram stage ────────────────────────────────────── */
+.knsl-stage { position: absolute; inset: 0; pointer-events: none; }
+.knsl-holo {
+  position: absolute; left: 50%; top: 50%;
+  width: 340px; height: 500px;
+  transform: translate(-50%, -50%);
+}
+
+.knsl-cone {
+  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  width: 260px; height: 400px;
+  background: linear-gradient(180deg, transparent 0%,
+    rgba(31,179,126,0.05) 45%, rgba(31,179,126,0.14) 100%);
+  clip-path: polygon(40% 0%, 60% 0%, 94% 100%, 6% 100%);
+  filter: blur(7px); opacity: 0.9;
+}
+
+/* Pedestal rings */
+.knsl-rings {
+  position: absolute; bottom: 34px; left: 50%; width: 0; height: 0;
+}
+.knsl-ring {
+  position: absolute; left: 0; top: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotateX(75deg);
+}
+.knsl-r1 {
+  width: 180px; height: 180px;
+  border: 1.5px solid rgba(31,179,126,0.55);
+  box-shadow: 0 0 24px rgba(31,179,126,0.35), inset 0 0 30px rgba(31,179,126,0.18);
+}
+.knsl-r2 { width: 248px; height: 248px; border: 1px dashed rgba(212,175,55,0.50); }
+.knsl-r3 { width: 320px; height: 320px; border: 1px solid rgba(31,179,126,0.16); }
+
+/* Lady Justice figure */
+.knsl-figure {
+  position: absolute; left: 50%; top: 44px;
+  width: 240px; height: 340px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 22px rgba(31,179,126,0.35));
+  transition: filter 0.45s ease;
+}
+.knsl-scene.is-charging .knsl-figure {
+  filter: drop-shadow(0 0 38px rgba(31,179,126,0.75))
+          brightness(1.45) saturate(1.25);
+}
+.knsl-halo {
+  position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 62%);
+}
+.knsl-head {
+  position: absolute; top: 0; left: 50%; margin-left: -17px;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%,
+    rgba(31,179,126,0.75), rgba(31,179,126,0.18) 70%);
+  box-shadow: 0 0 18px rgba(31,179,126,0.55),
+              inset 0 0 0 1px rgba(31,179,126,0.6);
+}
+.knsl-blindfold {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  width: 46px; height: 8px; border-radius: 5px;
+  background: linear-gradient(90deg, var(--knsl-gold-deep),
+    var(--knsl-gold-hi) 35%, var(--knsl-gold) 60%, var(--knsl-gold-deep));
+  box-shadow: 0 0 12px rgba(212,175,55,0.5);
+}
+.knsl-body {
+  position: absolute; top: 42px; left: 50%; transform: translateX(-50%);
+  width: 134px; height: 290px;
+  clip-path: polygon(50% 0%, 62% 5%, 74% 19%, 92% 100%, 8% 100%, 26% 19%, 38% 5%);
+  background:
+    repeating-linear-gradient(0deg, rgba(31,179,126,0.12) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, rgba(31,179,126,0.55) 0%,
+      rgba(31,179,126,0.14) 52%, rgba(31,179,126,0.28) 100%);
+}
+.knsl-body-core {
+  position: absolute; top: 56px; left: 50%; margin-left: -1px;
+  width: 2px; height: 250px; border-radius: 2px;
+  background: linear-gradient(180deg,
+    rgba(234,255,244,0.85), rgba(31,179,126,0.12));
+  box-shadow: 0 0 14px rgba(31,179,126,0.7);
+}
+
+/* Scales yoke */
+.knsl-yoke {
+  position: absolute; top: 56px; left: 50%;
+  width: 300px; height: 0; transform: translateX(-50%);
+}
+.knsl-beam {
+  position: absolute; top: -2px; left: 0; width: 100%; height: 4px; border-radius: 4px;
+  background: linear-gradient(90deg,
+    var(--knsl-gold-deep) 0%, var(--knsl-gold-hi) 26%,
+    var(--knsl-gold) 50%, var(--knsl-gold-hi) 74%, var(--knsl-gold-deep) 100%);
+  box-shadow: 0 0 16px rgba(212,175,55,0.45),
+              0 1px 0 rgba(255,255,255,0.25) inset;
+}
+.knsl-boss {
+  position: absolute; top: -6px; left: 50%; margin-left: -6px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%,
+    var(--knsl-gold-hi), var(--knsl-gold-deep));
+  box-shadow: 0 0 12px rgba(212,175,55,0.6);
+}
+.knsl-scale { position: absolute; top: 0; width: 70px; height: 115px; transform-origin: 50% 0; }
+.knsl-l    { left: -35px;  margin-left: 6px; }
+.knsl-r    { right: -35px; margin-right: 6px; }
+.knsl-ch   { position: absolute; top: 0; left: 50%; width: 1px; height: 85px; transform-origin: top center;
+             background: linear-gradient(180deg, rgba(222,184,90,0.95), rgba(222,184,90,0.22)); }
+.knsl-ch1  { transform: rotate(-13deg); }
+.knsl-ch3  { transform: rotate(13deg); }
+.knsl-pan  {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  width: 66px; height: 18px;
+  border: 1.5px solid rgba(222,184,90,0.9); border-top: none;
+  border-radius: 0 0 66px 66px;
+  background: linear-gradient(180deg, rgba(31,179,126,0.30), rgba(31,179,126,0.06));
+  box-shadow: 0 6px 18px -6px rgba(212,175,55,0.45),
+              inset 0 -4px 10px rgba(31,179,126,0.25);
+}
+.knsl-pan-glow {
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  width: 80px; height: 16px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(31,179,126,0.30), transparent 70%);
+  filter: blur(3px);
+}
+
+/* Scanline sweep */
+.knsl-scanline {
+  position: absolute; left: 6%; right: 6%; top: -90px; height: 70px; pointer-events: none;
+  background: linear-gradient(180deg, transparent,
+    rgba(31,179,126,0.13) 45%, rgba(234,255,244,0.10) 50%, transparent);
+  opacity: 0;
+}
+
+/* Energy pulse rings */
+.knsl-pulse {
+  position: absolute; bottom: 6px; left: 50%;
+  width: 110px; height: 110px; margin-left: -55px;
+  border-radius: 50%; border: 1.5px solid rgba(31,179,126,0.6);
+  opacity: 0; pointer-events: none;
+}
+.knsl-scene.is-charging .knsl-p1 { animation: knslPulse 1.15s cubic-bezier(0.2,0.6,0.4,1) infinite; }
+.knsl-scene.is-charging .knsl-p2 { animation: knslPulse 1.15s cubic-bezier(0.2,0.6,0.4,1) 0.38s infinite; }
+.knsl-scene.is-charging .knsl-p3 { animation: knslPulse 1.15s cubic-bezier(0.2,0.6,0.4,1) 0.76s infinite;
+  border-color: rgba(212,175,55,0.55); }
+@keyframes knslPulse {
+  0%   { opacity: 0.9; transform: translateX(0) rotateX(75deg) scale(0.25); }
+  100% { opacity: 0;   transform: translateX(0) rotateX(75deg) scale(2.6); }
+}
+
+/* Floating holo-docs */
+.knsl-doc {
+  position: absolute; width: 148px; padding: 12px 13px 11px;
+  border-radius: 12px;
+  background: linear-gradient(165deg,
+    rgba(17,26,21,0.62), rgba(9,13,11,0.4));
+  border: 1px solid rgba(31,179,126,0.26);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 24px 50px -28px rgba(0,0,0,0.9),
+              inset 0 0 28px rgba(31,179,126,0.05);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.knsl-d1 { left: 12%; top: 14%; transform: rotate(-4deg); }
+.knsl-d2 { right: 10%; top: 20%; width: 134px; transform: rotate(3.5deg); }
+.knsl-d3 { left: 10%; bottom: 12%; width: 138px; transform: rotate(2deg); }
+.knsl-doc-head { display: flex; align-items: center; gap: 7px; }
+.knsl-doc-seal {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  background: radial-gradient(circle at 35% 30%,
+    var(--knsl-gold-hi), var(--knsl-gold-deep));
+  box-shadow: 0 0 8px rgba(212,175,55,0.55);
+}
+.knsl-doc-lbl   { font-size: 9px; letter-spacing: 0.08em; color: rgba(222,184,90,0.9); font-family: monospace; }
+.knsl-doc-line  { display: block; height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, rgba(31,179,126,0.45), rgba(31,179,126,0.1)); }
+.knsl-doc-stamp { font-size: 7.5px; letter-spacing: 0.18em; color: rgba(31,179,126,0.75); font-family: monospace; }
+
+/* ── 5. Animations ────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .login-card::after { animation: knslBorderSpin 9s linear infinite; }
+  .knsl-au1 { animation: knslDrift1 26s ease-in-out infinite; }
+  .knsl-au2 { animation: knslDrift2 32s ease-in-out infinite; }
+  .knsl-au3 { animation: knslDrift3 30s ease-in-out infinite; }
+  .knsl-figure   { animation: knslFloat    7s ease-in-out infinite; }
+  .knsl-yoke     { animation: knslSeesaw   8s ease-in-out infinite; }
+  .knsl-scale    { animation: knslCounter  8s ease-in-out infinite; }
+  .knsl-r1       { animation: knslRSpin   22s linear infinite; }
+  .knsl-r2       { animation: knslRSpinR  30s linear infinite; }
+  .knsl-r3       { animation: knslRSpin   44s linear infinite; }
+  .knsl-holo     { animation: knslFlicker  9s steps(1) infinite; }
+  .knsl-scanline { animation: knslScan    5.2s ease-in-out infinite; }
+  .knsl-d1       { animation: knslDocFloat  9s ease-in-out infinite; }
+  .knsl-d2       { animation: knslDocFloat 11s ease-in-out 0.8s infinite; }
+  .knsl-d3       { animation: knslDocFloat 10s ease-in-out 1.6s infinite; }
+}
+@keyframes knslBorderSpin  { to { --knsl-ang: 360deg; } }
+@keyframes knslDrift1 { 0%,100%{transform:translate(0,0)}      50%{transform:translate(54px,38px)} }
+@keyframes knslDrift2 { 0%,100%{transform:translate(0,0)}      50%{transform:translate(-46px,-32px)} }
+@keyframes knslDrift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,26px) scale(1.08)} }
+@keyframes knslFloat   { 0%,100%{transform:translateX(-50%) translateY(0)}    50%{transform:translateX(-50%) translateY(-10px)} }
+@keyframes knslSeesaw  { 0%,100%{transform:translateX(-50%) rotate(2.2deg)}   50%{transform:translateX(-50%) rotate(-2.2deg)} }
+@keyframes knslCounter { 0%,100%{transform:rotate(-2.2deg)} 50%{transform:rotate(2.2deg)} }
+@keyframes knslRSpin   { from{transform:translate(-50%,-50%) rotateX(75deg) rotate(0deg)}   to{transform:translate(-50%,-50%) rotateX(75deg) rotate(360deg)} }
+@keyframes knslRSpinR  { from{transform:translate(-50%,-50%) rotateX(75deg) rotate(360deg)} to{transform:translate(-50%,-50%) rotateX(75deg) rotate(0deg)} }
+@keyframes knslFlicker { 0%,6.5%,7.5%,48%,49%,100%{opacity:1} 7%{opacity:0.86} 48.5%{opacity:0.92} }
+@keyframes knslScan    { 0%{transform:translateY(0);opacity:0} 8%{opacity:1} 70%{opacity:1} 100%{transform:translateY(600px);opacity:0} }
+@keyframes knslDocFloat{ 0%,100%{margin-top:0} 50%{margin-top:-12px} }
+
+/* ── 6. Shell / Dashboard ─────────────────────────────────── */
+/* Ambient aurora behind the whole app */
+.knsl-app-ambient {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.knsl-app-ambient > span {
+  position: absolute; border-radius: 50%; filter: blur(110px);
+}
+.knsl-app-ambient .g1 {
+  width: 46vw; height: 46vw; min-width: 420px; min-height: 420px;
+  top: -22%; left: -8%;
+  background: radial-gradient(circle, rgba(31,179,126,0.13), transparent 66%);
+}
+.knsl-app-ambient .g2 {
+  width: 36vw; height: 36vw; min-width: 360px; min-height: 360px;
+  bottom: -22%; right: -10%;
+  background: radial-gradient(circle, rgba(212,175,55,0.08), transparent 66%);
+}
+
+/* Sidebar gold seam */
+.sidebar-premium {
+  border-right: 1px solid rgba(212,175,55,0.12) !important;
+  background: linear-gradient(165deg, #0d1210 0%, #070908 60%, #050706 100%) !important;
+  position: relative;
+}
+.sidebar-premium::after {
+  content: ''; position: absolute;
+  top: 0; bottom: 0; right: -1px; width: 1px; pointer-events: none;
+  background: linear-gradient(180deg,
+    transparent, rgba(212,175,55,0.35) 18%, transparent 55%);
+}
+
+/* Card hover glow */
+.knsl-card-glow:hover {
+  border-color: rgba(31,179,126,0.30) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 30px 70px -34px rgba(0,0,0,0.9),
+    0 0 34px -10px rgba(31,179,126,0.26) !important;
+}
+
+/* Search bar focus */
+.knsl-search:focus-within {
+  border-color: rgba(31,179,126,0.45) !important;
+  box-shadow: 0 0 0 4px rgba(31,179,126,0.08),
+              0 0 22px -8px rgba(31,179,126,0.40) !important;
+}
+
+/* ── 7. Post-login entrance ───────────────────────────────── */
+.knsl-app-veil {
+  position: fixed; inset: 0; z-index: 90; pointer-events: none;
+  background: radial-gradient(1000px 700px at 50% 50%,
+    rgba(12,74,51,0.72), #040605 72%);
+  animation: knslVeilOut 0.85s ease 0.15s both;
+}
+@keyframes knslVeilOut {
+  from { opacity: 1; }
+  to   { opacity: 0; visibility: hidden; }
+}
+.knsl-app-enter {
+  animation: knslAppEnter 0.7s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes knslAppEnter {
+  from { opacity: 0; transform: scale(1.012); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── 8. Responsive ────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .knsl-holo { opacity: 0.28; }
+  .knsl-d1, .knsl-d2, .knsl-d3 { display: none; }
+  .knsl-floor { opacity: 0.3; }
+}
+@media (max-width: 460px) {
+  .login-card { padding: 28px 20px 22px !important; border-radius: 18px !important; }
+}
+
+/* ── 9. Integration overrides ─────────────────────────────────
+   These let the cinematic scene show through on BOTH login paths
+   without editing the existing login components:
+     a) Legacy LoginScreen renders its own .login-screen; when it is
+        nested inside the PremiumLogin wrapper (.login-screen .login-screen)
+        we strip its opaque background so the scene behind stays visible.
+     b) Supabase LoginPage uses .auth-root inside a .knsl-premium-auth
+        wrapper; we make its panels translucent so the scene shows.
+   ─────────────────────────────────────────────────────────── */
+
+/* a) Nested legacy login — let the scene behind show through */
+.login-screen .login-screen {
+  background: transparent !important;
+  min-height: auto !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+.login-screen .login-screen::after { display: none !important; }
+.login-screen .login-screen .login-ambient { display: none !important; }
+
+/* b) Supabase auth shell over the cinematic scene (login route only) */
+.knsl-premium-auth {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: linear-gradient(180deg, #070908 0%, #040605 100%);
+}
+.knsl-premium-auth .knsl-scene { position: absolute; inset: 0; z-index: 0; }
+.knsl-premium-auth .auth-root {
+  position: relative; z-index: 1;
+  background: transparent !important;
+}
+/* Hide the duplicate mobile ambient orbs — the scene replaces them */
+.knsl-premium-auth .auth-mobile-ambient { display: none !important; }
+/* Desktop two-pane only: translucent glass panels so the scene reads
+   through. NB: these MUST be scoped to >=901px — on mobile the form panel
+   becomes full-screen and any panel tint would veil the whole scene. */
+@media (min-width: 901px) {
+  .knsl-premium-auth .auth-brand {
+    background:
+      linear-gradient(165deg, rgba(19,133,92,0.12) 0%, transparent 42%),
+      linear-gradient(220deg, rgba(212,175,55,0.06) 0%, transparent 50%),
+      rgba(10,13,12,0.42) !important;
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+  }
+  .knsl-premium-auth .auth-form-panel {
+    background: rgba(5,7,6,0.55) !important;
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+  }
+}
+
+/* Mobile (<=900px): the auth shell collapses to a single full-screen
+   form panel. Keep that panel transparent so the cinematic scene shows,
+   strip the duplicate grid overlay, and surface the Lady Justice
+   hologram as a hero above the (translucent) login card. */
+@media (max-width: 900px) {
+  /* Panel is full-screen here — must stay transparent or it veils the scene */
+  .knsl-premium-auth .auth-form-panel {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* push the card down to reveal the hologram hero above it */
+    padding-top: calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 224px) !important;
+  }
+  /* The scene provides its own floor grid — drop auth-root's grid overlay */
+  .knsl-premium-auth .auth-root::before { display: none !important; }
+  /* Cinematic hologram as a hero anchored to the top of the screen */
+  .knsl-premium-auth .knsl-holo {
+    opacity: 0.9 !important;
+    top: 22px;
+    left: 50%;
+    transform: translate(-50%, 0) scale(0.62);
+    transform-origin: top center;
+  }
+  .knsl-premium-auth .knsl-floor { opacity: 0.42 !important; }
+  /* Slightly more translucent card so the emerald glow keeps reading through */
+  .knsl-premium-auth .auth-form-wrap {
+    background: rgba(10, 14, 12, 0.66) !important;
+  }
+}
