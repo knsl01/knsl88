@@ -124,6 +124,11 @@ export const STYLES = `
   .tab{font-size:15.5px;padding:11px 4px;font-weight:500;}
   .tab.active{font-weight:700;}
   .tab.active::after{height:2.5px;background:linear-gradient(90deg,#10B981,#D4AF37);}
+  .analysis-tabs{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px !important;border-bottom:0 !important;padding-bottom:0 !important;margin-bottom:16px !important;overflow:visible !important;}
+  .analysis-tabs .tab{display:flex;align-items:center;justify-content:center;min-height:42px;padding:9px 8px !important;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.025);font-size:13px;text-align:center;white-space:normal;line-height:1.15;}
+  .analysis-tabs .tab.active{border-color:rgba(16,185,129,0.45);background:rgba(16,185,129,0.12);color:var(--emerald-bright);}
+  .analysis-tabs .tab.active::after{display:none;}
+  .lawyer-explanation-row{grid-template-columns:1fr !important;gap:4px !important;}
 
   /* === Metrics: premium card feel === */
   .gauge-num{font-family:'Playfair Display',serif;}

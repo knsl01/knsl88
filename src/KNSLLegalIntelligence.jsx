@@ -1153,7 +1153,7 @@ function Analysis({ seed }) {
               )}
 
               {/* tabs */}
-              <div style={{ display: "flex", gap: 22, borderBottom: "1px solid var(--line)", paddingBottom: 9, marginBottom: 18, overflowX: "auto" }} className="scrollbar">
+              <div style={{ display: "flex", gap: 22, borderBottom: "1px solid var(--line)", paddingBottom: 9, marginBottom: 18, overflowX: "auto" }} className="scrollbar analysis-tabs">
                 {tabs.map(([id, lb]) => <div key={id} className={`tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{lb}</div>)}
               </div>
 
@@ -1273,7 +1273,7 @@ function Analysis({ seed }) {
                           ["Solusi ringkas", lawyerConclusion.solution],
                           ["Yang perlu dilengkapi", lawyerConclusion.evidenceGap],
                         ].map(([label, value]) => (
-                          <div key={label} style={{ display: "grid", gridTemplateColumns: "minmax(120px, 0.34fr) 1fr", gap: 12, alignItems: "start", padding: "9px 0", borderBottom: "1px solid rgba(216,192,138,0.08)" }}>
+                          <div key={label} className="lawyer-explanation-row" style={{ display: "grid", gridTemplateColumns: "minmax(120px, 0.34fr) 1fr", gap: 12, alignItems: "start", padding: "9px 0", borderBottom: "1px solid rgba(216,192,138,0.08)" }}>
                             <div style={{ fontSize: 11.5, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: ".6px" }}>{label}</div>
                             <div style={{ fontSize: 13.5, color: "var(--silver)", lineHeight: 1.55 }}>{value}</div>
                           </div>
