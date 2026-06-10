@@ -1,8 +1,8 @@
 /* Vercel Serverless — unified AI proxy (Gemini, Groq, Ollama, Claude).
    Route: POST /api/ai
    Body: { provider, system, user, maxTokens, model } */
-import { routeAI, getAIStatus } from "./aiRouter.mjs";
-import { applyCors, checkBodySize, checkRateLimit } from "./aiGuards.mjs";
+import { routeAI, getAIStatus } from "../server-ai-router.mjs";
+import { applyCors, checkBodySize, checkRateLimit } from "../server-ai-guards.mjs";
 
 export default async function handler(req, res) {
   const corsOk = applyCors(req, res);

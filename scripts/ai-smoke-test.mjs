@@ -5,8 +5,8 @@ import {
   checkRateLimit,
   isAllowedOrigin,
   resetRateLimitForTests,
-} from "../api/aiGuards.mjs";
-import { routeAI } from "../api/aiRouter.mjs";
+} from "../server-ai-guards.mjs";
+import { routeAI } from "../server-ai-router.mjs";
 import { dispatchKnslChatAgent } from "../src/agents/chatDispatcher.js";
 
 function jsonResponse(data, status = 200) {

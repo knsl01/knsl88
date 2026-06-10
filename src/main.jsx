@@ -14,7 +14,6 @@ import AppRoutes from "./routes/AppRoutes.jsx";
 
 if (typeof window !== "undefined") {
   window.__AI_PROXY__ = "/api/ai";
-  window.__CLAUDE_PROXY__ = "/api/claude"; // legacy OCR / direct Claude calls
 }
 
 /* ---------- iOS viewport fix ---------- */

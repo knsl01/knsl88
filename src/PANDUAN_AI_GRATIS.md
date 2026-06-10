@@ -116,5 +116,5 @@ Matikan toggle AI — **mesin heuristik tetap jalan penuh** (offline, gratis, ta
 
 ## Endpoint teknis
 
-- Baru: `POST /api/ai` — body `{ provider, system, user, maxTokens, responseFormat, images }`
-- Legacy: `POST /api/claude` — masih didukung untuk kompatibilitas
+- `POST /api/ai` — body `{ provider, system, user, maxTokens, responseFormat, images }`
+- `provider` bisa `auto`, `gemini`, `groq`, `ollama` (dev lokal), atau `claude` (jika `ANTHROPIC_API_KEY` dipasang).
