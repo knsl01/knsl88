@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Scale, FileSignature, BookOpen, ShieldCheck,
   Search, Bell, Menu, X, ChevronRight, Gavel, Clock,
   TrendingUp, AlertTriangle, CheckCircle2, Sparkles, FileText,
-  Activity, Settings, Zap, Info,
+  Activity, Settings, Zap, Info, Moon, Sun,
   FileSearch, Upload, ScanLine, ChevronDown, Download, Trash2, Lock, History, LogOut, User, MessageCircle,
 } from "lucide-react";
 import {
@@ -99,6 +99,21 @@ const ACTIONS = {
   ],
   lain: ["Konsultasikan dengan advokat untuk menentukan ranah hukum dan strategi yang tepat."],
 };
+
+const THEME_STORAGE_KEY = "knsl:color-theme";
+
+function getInitialColorTheme() {
+  if (typeof window === "undefined") return "dark";
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch { /* ignore */ }
+  return window.matchMedia?.("(prefers-color-scheme: light)")?.matches ? "light" : "dark";
+}
+
+function setStoredColorTheme(theme) {
+  try { window.localStorage.setItem(THEME_STORAGE_KEY, theme); } catch { /* ignore */ }
+}
 function classifyDomain(data) {
   const c = { KUHP: 0, PT: 0, UUD: 0 };
   data.results.forEach((r) => { const l = r.l; if (l === "KUHP" || l.indexOf("UU ITE") === 0) c.KUHP++; else if (l.indexOf("UU PT") === 0 || l.indexOf("UU 37/2004") === 0 || l.indexOf("UU 30/1999") === 0 || l.indexOf("UU 4/2023") === 0) c.PT++; else c.UUD++; });
@@ -109,6 +124,48 @@ function classifyDomain(data) {
   else if (c.PT >= c.UUD) dom = "korporasi";
   else dom = "tata";
   return { dom, ...DOMAINS[dom], actions: ACTIONS[dom] };
+}
+
+function buildLawyerConclusion(data, cls) {
+  const issues = data?.is?.issues || [];
+  const facts = data?.fm?.facts || [];
+  const missing = data?.fm?.missingFacts || [];
+  const statutes = data?.rs?.retrieved || [];
+  const tests = data?.etr?.tests || [];
+  const uniqueStatutes = [];
+  const statuteKeys = new Set();
+  for (const s of statutes) {
+    const key = `${s.law}|${s.article}`;
+    if (statuteKeys.has(key)) continue;
+    statuteKeys.add(key);
+    uniqueStatutes.push(s);
+  }
+  const primaryIssue = issues[0]?.statement || "isu hukum utama belum cukup tegas dari kronologi";
+  const primaryFacts = facts.slice(0, 2).map((f) => f.statement.replace(/[.!?]\s*$/, "")).join("; ");
+  const legalBases = uniqueStatutes.slice(0, 3).map((s) => `${s.law} Pasal ${s.article}`).join(", ");
+  const supported = tests.filter((t) => /Strong|Moderate–High|Moderate/i.test(t.status)).length;
+  const weak = tests.filter((t) => /Weak|Not assessable/i.test(t.status)).length;
+  const firstActions = (cls?.actions || []).slice(0, 2).join(" ");
+  const missingText = missing.slice(0, 3).map((m) => m.description).join("; ");
+
+  const why = cls
+    ? `Kasus ini sementara dibaca sebagai ${cls.label.toLowerCase()} karena kronologi memunculkan ${primaryIssue.toLowerCase()}. ${primaryFacts ? `Fakta awal yang paling penting: ${primaryFacts}.` : ""}`
+    : `Kronologi sudah memunculkan isu hukum, tetapi klasifikasi ranah masih perlu dipastikan dari fakta dan dokumen tambahan.`;
+  const legalPosition = legalBases
+    ? `Dasar hukum awal yang perlu dipakai untuk menilai posisi klien adalah ${legalBases}. Uji unsur menunjukkan ${supported} unsur memiliki dukungan awal dan ${weak} unsur masih lemah/belum dapat dinilai.`
+    : `Belum ada pasal yang cukup kuat dari indeks; perlu memperjelas kronologi, bukti, dan hubungan hukum para pihak sebelum menentukan dasar hukum.`;
+  const solution = firstActions || "Lengkapi kronologi, bukti, identitas pihak, dan konsultasikan strategi dengan advokat sebelum mengambil langkah hukum.";
+  const evidenceGap = missingText
+    ? `Sebelum melangkah, lengkapi terutama: ${missingText}.`
+    : "Bukti awal sudah cukup untuk pemetaan awal, tetapi tetap perlu verifikasi dokumen asli dan saksi.";
+
+  return {
+    headline: cls ? `${cls.label}: fokus pada pembuktian unsur dan langkah pemulihan.` : "Perlu kajian lanjutan sebelum menentukan strategi final.",
+    why,
+    legalPosition,
+    solution,
+    evidenceGap,
+  };
 }
 
 
@@ -459,6 +516,7 @@ const memoDocHTML = (inner) =>
 
 function buildMemoHTML(data, cls) {
   const { fm, is, rs, etr, audit } = data;
+  const lawyerConclusion = buildLawyerConclusion(data, cls);
   const today = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   const factsRows = fm.facts.map((f) => `<tr><td class="tag">${_esc(f.id)}</td><td>${_esc(f.statement)}</td><td>${_esc(f.category)}</td><td>${_esc(f.certainty)}${f.externalLabel ? " <span class='mut'>(label eksternal)</span>" : ""}</td></tr>`).join("");
   const missRows = fm.missingFacts.map((m) => `<li>${_esc(m.description)} <span class="mut">(${_esc(m.category)})</span></li>`).join("");
@@ -483,6 +541,13 @@ function buildMemoHTML(data, cls) {
     <h2>I. Ringkasan</h2>
     <p>${_esc(cls ? cls.desc : "")}</p>
     <p><b>Alur proses: </b>${_esc(cls ? cls.proses : "")}</p>
+    <table><tr><th>Kesimpulan</th><th>Penjelasan Lawyer</th></tr>
+      <tr><td>Inti kasus</td><td>${_esc(lawyerConclusion.headline)}</td></tr>
+      <tr><td>Kenapa demikian</td><td>${_esc(lawyerConclusion.why)}</td></tr>
+      <tr><td>Dasar hukum awal</td><td>${_esc(lawyerConclusion.legalPosition)}</td></tr>
+      <tr><td>Solusi ringkas</td><td>${_esc(lawyerConclusion.solution)}</td></tr>
+      <tr><td>Yang perlu dilengkapi</td><td>${_esc(lawyerConclusion.evidenceGap)}</td></tr>
+    </table>
     <h2>II. Matriks Fakta (Stage 1)</h2>
     <table><tr><th>ID</th><th>Pernyataan</th><th>Kategori</th><th>Kepastian</th></tr>${factsRows}</table>
     <p class="mut" style="margin-top:6px"><b>Fakta yang masih kurang:</b></p><ul class="mut">${missRows}</ul>
@@ -773,9 +838,10 @@ function Sidebar({ active, onNavigate, open, onClose, user, onLogout }) {
 }
 
 /* ---------- topbar ---------- */
-function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
+function Topbar({ title, subtitle, onMenu, onGlobalSearch, action, colorTheme, onToggleTheme }) {
   const { t } = useI18n();
   const [v, setV] = useState("");
+  const isLight = colorTheme === "light";
   return (
     <header className="topbar">
       <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -792,6 +858,15 @@ function Topbar({ title, subtitle, onMenu, onGlobalSearch, action }) {
             value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && v.trim()) onGlobalSearch(v.trim()); }} />
         </div>
         {action}
+        <button
+          type="button"
+          className="glass glass-hover theme-toggle"
+          onClick={onToggleTheme}
+          aria-label={isLight ? "Aktifkan dark mode" : "Aktifkan light mode"}
+          title={isLight ? "Dark mode" : "Light mode"}
+        >
+          {isLight ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
         <div className="glass glass-hover" style={{ position: "relative", width: 44, height: 44, display: "grid", placeItems: "center", cursor: "pointer", borderRadius: 14 }}>
           <Bell size={18} style={{ color: "var(--silver)" }} />
           <span style={{ position: "absolute", top: 11, right: 12, width: 7, height: 7, borderRadius: "50%", background: "var(--emerald-bright)", boxShadow: "0 0 8px var(--emerald-bright)" }} />
@@ -1103,7 +1178,7 @@ function Analysis({ seed }) {
               )}
 
               {/* tabs */}
-              <div style={{ display: "flex", gap: 22, borderBottom: "1px solid var(--line)", paddingBottom: 9, marginBottom: 18, overflowX: "auto" }} className="scrollbar">
+              <div style={{ display: "flex", gap: 22, borderBottom: "1px solid var(--line)", paddingBottom: 9, marginBottom: 18, overflowX: "auto" }} className="scrollbar analysis-tabs">
                 {tabs.map(([id, lb]) => <div key={id} className={`tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{lb}</div>)}
               </div>
 
@@ -1199,6 +1274,7 @@ function Analysis({ seed }) {
 
               {tab === "conclusion" && cls && (() => {
                 const score = Math.min(95, 40 + data.rs.retrieved.length * 4 + data.is.issues.length * 3);
+                const lawyerConclusion = buildLawyerConclusion(data, cls);
                 return (
                   <div>
                     <div className="glass" style={{ padding: 16, marginBottom: 16, borderLeft: `3px solid ${cls.color}` }}>
@@ -1208,6 +1284,26 @@ function Analysis({ seed }) {
                       </div>
                       <p style={{ fontSize: 13, color: "var(--silver)", margin: "0 0 8px", lineHeight: 1.55 }}>{cls.desc}</p>
                       <div style={{ fontSize: 12.5, color: "var(--muted)" }}><b className="gold-text">Alur proses: </b>{cls.proses}</div>
+                    </div>
+                    <div className="glass" style={{ padding: 16, marginBottom: 18, background: "linear-gradient(150deg,rgba(31,179,126,0.08),rgba(216,192,138,0.04))" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        <Gavel size={16} className="gold-text" />
+                        <h4 className="serif" style={{ fontSize: 18, margin: 0 }}>Penjelasan Lawyer</h4>
+                      </div>
+                      <div style={{ display: "grid", gap: 9 }}>
+                        {[
+                          ["Inti kasus", lawyerConclusion.headline],
+                          ["Kenapa demikian", lawyerConclusion.why],
+                          ["Dasar hukum awal", lawyerConclusion.legalPosition],
+                          ["Solusi ringkas", lawyerConclusion.solution],
+                          ["Yang perlu dilengkapi", lawyerConclusion.evidenceGap],
+                        ].map(([label, value]) => (
+                          <div key={label} className="lawyer-explanation-row" style={{ display: "grid", gridTemplateColumns: "minmax(120px, 0.34fr) 1fr", gap: 12, alignItems: "start", padding: "9px 0", borderBottom: "1px solid rgba(216,192,138,0.08)" }}>
+                            <div style={{ fontSize: 11.5, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: ".6px" }}>{label}</div>
+                            <div style={{ fontSize: 13.5, color: "var(--silver)", lineHeight: 1.55 }}>{value}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <div style={{ marginBottom: 18 }}>
                       <h4 className="serif" style={{ fontSize: 18, margin: "0 0 11px" }}>Langkah yang Sebaiknya Ditempuh</h4>
@@ -3058,11 +3154,19 @@ export default function App() {
   const [dashEditing, setDashEditing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [seed, setSeed] = useState(null);
+  const [colorTheme, setColorTheme] = useState(getInitialColorTheme);
 
   useEffect(() => {
     setActive(activeFromRoute);
     if (activeFromRoute !== "dashboard") setDashEditing(false);
   }, [activeFromRoute]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.theme = colorTheme;
+    }
+    setStoredColorTheme(colorTheme);
+  }, [colorTheme]);
 
   const goTo = useCallback((id) => {
     const path = ACTIVE_TO_ROUTE[id] || ROUTES.APP;
@@ -3086,6 +3190,7 @@ export default function App() {
     navigate(ROUTES.LOGIN, { replace: true });
   };
   const globalSearch = (q) => { setSeed({ q, n: Date.now() }); goTo("analysis"); setNavOpen(false); };
+  const toggleColorTheme = () => setColorTheme((theme) => (theme === "light" ? "dark" : "light"));
   const sendIntake = (target, text, name) => {
     if (target === "contract") { if (typeof window !== "undefined") window.__KNSL_INTAKE__ = { text, name }; goTo("contract"); }
     else if (target === "analysis") { setSeed({ q: text, n: Date.now() }); goTo("analysis"); }
@@ -3093,7 +3198,7 @@ export default function App() {
     setNavOpen(false);
   };
   return (
-    <div className="knsl">
+    <div className="knsl" data-theme={colorTheme}>
       <style>{STYLES}</style>
       <div className="shell">
         {navOpen && <div className="backdrop" onClick={() => setNavOpen(false)} />}
@@ -3102,6 +3207,8 @@ export default function App() {
           <Topbar
             title={meta[active][0]} subtitle={meta[active][1]}
             onMenu={() => setNavOpen(true)} onGlobalSearch={globalSearch}
+            colorTheme={colorTheme}
+            onToggleTheme={toggleColorTheme}
             action={active === "dashboard" ? (
               <div
                 className="glass glass-hover"
