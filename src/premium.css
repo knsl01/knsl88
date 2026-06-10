@@ -495,20 +495,51 @@
 }
 /* Hide the duplicate mobile ambient orbs — the scene replaces them */
 .knsl-premium-auth .auth-mobile-ambient { display: none !important; }
-/* Translucent glass panels so the aurora + hologram read through */
-.knsl-premium-auth .auth-brand {
-  background:
-    linear-gradient(165deg, rgba(19,133,92,0.12) 0%, transparent 42%),
-    linear-gradient(220deg, rgba(212,175,55,0.06) 0%, transparent 50%),
-    rgba(10,13,12,0.42) !important;
-  backdrop-filter: blur(10px) saturate(130%);
-  -webkit-backdrop-filter: blur(10px) saturate(130%);
+/* Desktop two-pane only: translucent glass panels so the scene reads
+   through. NB: these MUST be scoped to >=901px — on mobile the form panel
+   becomes full-screen and any panel tint would veil the whole scene. */
+@media (min-width: 901px) {
+  .knsl-premium-auth .auth-brand {
+    background:
+      linear-gradient(165deg, rgba(19,133,92,0.12) 0%, transparent 42%),
+      linear-gradient(220deg, rgba(212,175,55,0.06) 0%, transparent 50%),
+      rgba(10,13,12,0.42) !important;
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+  }
+  .knsl-premium-auth .auth-form-panel {
+    background: rgba(5,7,6,0.55) !important;
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+  }
 }
-.knsl-premium-auth .auth-form-panel {
-  background: rgba(5,7,6,0.55) !important;
-  backdrop-filter: blur(12px) saturate(130%);
-  -webkit-backdrop-filter: blur(12px) saturate(130%);
-}
-@media (max-width: 768px) {
-  .knsl-premium-auth .auth-form-panel { background: rgba(5,7,6,0.62) !important; }
+
+/* Mobile (<=900px): the auth shell collapses to a single full-screen
+   form panel. Keep that panel transparent so the cinematic scene shows,
+   strip the duplicate grid overlay, and surface the Lady Justice
+   hologram as a hero above the (translucent) login card. */
+@media (max-width: 900px) {
+  /* Panel is full-screen here — must stay transparent or it veils the scene */
+  .knsl-premium-auth .auth-form-panel {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* push the card down to reveal the hologram hero above it */
+    padding-top: calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 224px) !important;
+  }
+  /* The scene provides its own floor grid — drop auth-root's grid overlay */
+  .knsl-premium-auth .auth-root::before { display: none !important; }
+  /* Cinematic hologram as a hero anchored to the top of the screen */
+  .knsl-premium-auth .knsl-holo {
+    opacity: 0.9 !important;
+    top: 22px;
+    left: 50%;
+    transform: translate(-50%, 0) scale(0.62);
+    transform-origin: top center;
+  }
+  .knsl-premium-auth .knsl-floor { opacity: 0.42 !important; }
+  /* Slightly more translucent card so the emerald glow keeps reading through */
+  .knsl-premium-auth .auth-form-wrap {
+    background: rgba(10, 14, 12, 0.66) !important;
+  }
 }
