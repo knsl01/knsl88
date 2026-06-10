@@ -212,6 +212,8 @@ export const STYLES = `
   /* Prevent horizontal overflow */
   .view-enter,.analysis-grid,.drafting-grid,.two-col,.cr-grid{
     max-width:100%;overflow-x:hidden;}
+  .analysis-grid,.drafting-grid,.two-col,.cr-grid{width:100%;min-width:0;}
+  .analysis-grid>*,.drafting-grid>*,.two-col>*,.cr-grid>*,.metric-grid>*{min-width:0;}
   .metric-grid{max-width:100%;overflow:hidden;}
 
   /* Login screen: scroll if needed, centered */
@@ -219,8 +221,10 @@ export const STYLES = `
     padding-top:calc(var(--knsl-safe-top, env(safe-area-inset-top, 0px)) + 20px) !important;}
 
   /* Glass cards: prevent overflow */
-  .glass{max-width:100%;overflow:hidden;overflow-wrap:break-word;word-break:normal;hyphens:none;}
+  .glass{max-width:100%;min-width:0;overflow:visible;overflow-wrap:anywhere;word-break:break-word;hyphens:auto;}
   .ai-provider-wrap{overflow:visible !important;position:relative;z-index:5;}
+  .btn-primary,.btn-ghost,.chip,.badge,.field,select,textarea,input{max-width:100%;min-width:0;}
+  .btn-primary,.btn-ghost,.chip,.badge{white-space:normal;text-align:center;}
 
   /* Tables: scroll horizontally if needed */
   .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
