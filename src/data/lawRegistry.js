@@ -37,6 +37,7 @@ export const LAW_META = {
   "UU 23/2014": { short: "Pemda", color: "#b0a8d6", family: "asn" },
   "UU 39/1999": { short: "HAM", color: "#d69fb0", family: "ham" },
   "UU 35/2014": { short: "Perlindungan Anak", color: "#d6a8c8", family: "ham" },
+  "UU 17/2016": { short: "Perlindungan Anak (Perub. II)", color: "#d6a8c8", family: "ham" },
   "UU 11/2009": { short: "Kesejahteraan Sosial", color: "#c89fb0", family: "ham" },
   "UU 10/1998": { short: "Perbankan", color: "#7fb0c8", family: "perbankan" },
   "UU 23/1999": { short: "Bank Indonesia", color: "#6f9fc8", family: "moneter" },
