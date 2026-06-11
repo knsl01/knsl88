@@ -39,6 +39,10 @@ export const LAW_META = {
   "UU 35/2014": { short: "Perlindungan Anak", color: "#d6a8c8", family: "ham" },
   "UU 11/2009": { short: "Kesejahteraan Sosial", color: "#c89fb0", family: "ham" },
   "UU 10/1998": { short: "Perbankan", color: "#7fb0c8", family: "perbankan" },
+  "UU 23/1999": { short: "Bank Indonesia", color: "#6f9fc8", family: "moneter" },
+  "UU 3/2004": { short: "Perubahan BI", color: "#6f9fc8", family: "moneter" },
+  "UU 49/2009": { short: "Peradilan Umum", color: "#c8a86f", family: "peradilan" },
+  "UU 50/2009": { short: "Peradilan Agama", color: "#c8946f", family: "peradilan" },
 };
 
 /**
@@ -64,9 +68,11 @@ export const FILTER_GROUPS = [
   { key: "ham", label: "HAM & Sosial" },
   { key: "pailit", label: "Kepailitan & PKPU — UU 37/2004" },
   { key: "perbankan", label: "Perbankan — UU 7/1992 jo. 10/1998" },
+  { key: "moneter", label: "Moneter — Bank Indonesia" },
   { key: "siber", label: "Siber / ITE" },
   { key: "niaga", label: "Niaga — Arbitrase & P2SK" },
   { key: "acara", label: "Hukum Acara — KUHAP & Rv" },
+  { key: "peradilan", label: "Lembaga Peradilan — Umum & Agama" },
 ];
 
 export const familyOf = (l = "") => (LAW_META[l] ? LAW_META[l].family : null);
