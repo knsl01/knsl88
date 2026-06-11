@@ -1362,6 +1362,7 @@ function Analysis({ seed }) {
 function Research({ seed }) {
   const [q, setQ] = useState(seed && seed.q ? seed.q : "penggelapan");
   const [filter, setFilter] = useState("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [res, setRes] = useState(() => searchPasal(q, "all"));
   const [useAI, setUseAI] = useState(true);
   const [aiBusy, setAiBusy] = useState(false);
@@ -1389,7 +1390,7 @@ function Research({ seed }) {
     }
   };
   useEffect(() => { if (seed && seed.q) { setQ(seed.q); setRes(searchPasal(seed.q, "all")); } }, [seed]);
-  const filters = [["all", "Semua"], ["pidana", "KUHP"], ["korporasi", "UU PT"], ["tata", "UUD 1945"], ["pailit", "Pailit/PKPU"], ["siber", "ITE"], ["niaga", "Arbitrase/P2SK"], ["acara", "KUHAP/Rv"]];
+  const curFilter = FILTER_OPTIONS.find((o) => o.key === filter) || FILTER_OPTIONS[0];
   return (
     <div className="view-enter page scrollbar">
       <div className="glass rise" style={{ padding: 20, marginBottom: 18 }}>
@@ -1398,8 +1399,30 @@ function Research({ seed }) {
           <input className="field" style={{ border: "none", background: "transparent", padding: 0, fontSize: 15 }} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} placeholder="Cari pasal / riset hukum..." />
           <button className="btn-primary" style={{ padding: "9px 18px" }} onClick={() => run()}>Cari</button>
         </div>
-        <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
-          {filters.map(([id, lb]) => <button key={id} className="btn-ghost" style={id === filter ? { borderColor: "rgba(31,179,126,0.4)", color: "var(--emerald-bright)" } : {}} onClick={() => { setFilter(id); run(null, id); }}>{lb}</button>)}
+        <div style={{ marginTop: 14 }}>
+          <button
+            className="btn-ghost"
+            onClick={() => setFiltersOpen((s) => !s)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, ...(filter !== "all" ? { borderColor: "rgba(31,179,126,0.4)", color: "var(--emerald-bright)" } : {}) }}
+          >
+            <BookOpen size={14} className="gold-text" />
+            <span>Sumber Hukum: <b style={{ color: "var(--emerald-bright)" }}>{curFilter.label}</b></span>
+            <ChevronRight size={14} style={{ transform: filtersOpen ? "rotate(90deg)" : "none", transition: "transform .3s" }} />
+          </button>
+          {filtersOpen && (
+            <div style={{ display: "flex", gap: 9, marginTop: 10, flexWrap: "wrap" }}>
+              {FILTER_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  className="btn-ghost"
+                  style={o.key === filter ? { borderColor: "rgba(31,179,126,0.4)", color: "var(--emerald-bright)" } : {}}
+                  onClick={() => { setFilter(o.key); run(null, o.key); setFiltersOpen(false); }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="hairline" style={{ margin: "16px 0" }} />
         <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 12.5, color: "var(--silver)" }}>
