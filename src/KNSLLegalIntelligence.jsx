@@ -18,6 +18,7 @@ import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm } fr
 import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
 import { AGENT_IDS } from "./agents/registry.js";
+import "./premium.css";
 import { runLegalDrafting } from "./agents/legalDraftingAgent.js";
 
 import { checkBackend, login as apiLogin, register as apiRegister, getToken, saveCaseAnalysis, saveContractReview, clearToken } from "./knslApi.js";
@@ -3201,6 +3202,9 @@ export default function App() {
     <div className="knsl" data-theme={colorTheme}>
       <style>{STYLES}</style>
       <div className="shell">
+        {/* premium ambient + entry veil (purely visual) */}
+        <div className="knsl-app-ambient" aria-hidden="true"><span className="g1" /><span className="g2" /></div>
+        <div className="knsl-app-veil" aria-hidden="true" />
         {navOpen && <div className="backdrop" onClick={() => setNavOpen(false)} />}
         <Sidebar active={active} onNavigate={goTo} open={navOpen} onClose={() => setNavOpen(false)} user={user} onLogout={logout} colorTheme={colorTheme} />
         <main className="main">
