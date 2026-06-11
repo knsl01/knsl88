@@ -46,6 +46,16 @@ const raw = readFileSync(resolve(ROOT, file), "utf8");
 /* ---- parse ---- */
 const PASAL_RE = /^\s*pasal\s+(\d+\s*[A-Za-z]?)\s*$/i;
 const HEAD_RE = /^\s*(BAB\s+[IVXLCDM]+\b.*|Bagian\s+(Ke\w+|Pertama|Kedua|Ketiga|Keempat|Kelima)\b.*)$/i;
+// PDF page-break artifacts that leak into article text — dropped from `t`.
+const NOISE_RE = [
+  /^presiden\s*$/i,
+  /^republik\s+indonesia\s*$/i,
+  /^salinan\s*$/i,
+  /^-?\s*\d{1,4}\s*-?$/, // bare page numbers / "- 3 -"
+  /^www\./i,
+  /^\f+$/,
+];
+const isNoise = (s) => !s || NOISE_RE.some((re) => re.test(s));
 
 const lines = raw.replace(/\r\n?/g, "\n").split("\n");
 const out = [];
@@ -69,7 +79,10 @@ for (let i = 0; i < lines.length; i++) {
   const mP = ln.match(PASAL_RE);
   if (mP) {
     flush();
-    cur = { p: mP[1].replace(/\s+/g, "").toUpperCase(), b: curBab, buf: [] };
+    // OCR fix: some PDFs render 0 as letter O (e.g. "Pasal 3O" -> 30, "4OA" -> 40A).
+    // Pasal suffixes are A–H, never O, so converting O->0 inside the number is safe.
+    const pnum = mP[1].replace(/\s+/g, "").toUpperCase().replace(/O/g, "0");
+    cur = { p: pnum, b: curBab, buf: [] };
     continue;
   }
   const mH = ln.match(HEAD_RE);
@@ -83,7 +96,7 @@ for (let i = 0; i < lines.length; i++) {
     curBab = head;
     continue;
   }
-  if (cur) cur.buf.push(ln.trim());
+  if (cur && !isNoise(ln.trim())) cur.buf.push(ln.trim());
 }
 flush();
 

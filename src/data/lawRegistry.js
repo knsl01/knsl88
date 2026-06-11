@@ -38,6 +38,7 @@ export const LAW_META = {
   "UU 39/1999": { short: "HAM", color: "#d69fb0", family: "ham" },
   "UU 35/2014": { short: "Perlindungan Anak", color: "#d6a8c8", family: "ham" },
   "UU 11/2009": { short: "Kesejahteraan Sosial", color: "#c89fb0", family: "ham" },
+  "UU 10/1998": { short: "Perbankan", color: "#7fb0c8", family: "perbankan" },
 };
 
 /**
@@ -62,6 +63,7 @@ export const FILTER_GROUPS = [
   { key: "kesehatan", label: "Kesehatan — UU 17/2023" },
   { key: "ham", label: "HAM & Sosial" },
   { key: "pailit", label: "Kepailitan & PKPU — UU 37/2004" },
+  { key: "perbankan", label: "Perbankan — UU 7/1992 jo. 10/1998" },
   { key: "siber", label: "Siber / ITE" },
   { key: "niaga", label: "Niaga — Arbitrase & P2SK" },
   { key: "acara", label: "Hukum Acara — KUHAP & Rv" },
