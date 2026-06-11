@@ -14,7 +14,7 @@ import {
 import { CaseAnalysisAgent, ContractReviewAgent } from "./knslAiAgent.js";
 import AiProviderPicker from "./AiProviderPicker.jsx";
 import { getLastAiMeta, getLastAiError, getProviderLabel, formatAiError, getAiProvider } from "./aiProviders.js";
-import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm } from "./services/pasalSearch.js";
+import { searchPasal, outsideHits, lawShort, lawColor, lawSlug, PASAL, norm, FILTER_OPTIONS } from "./services/pasalSearch.js";
 import KnslAgentPicker from "./KnslAgentPicker.jsx";
 import { runLegalResearch, formatResearchResult } from "./agents/legalResearchAgent.js";
 import { AGENT_IDS } from "./agents/registry.js";
@@ -1039,7 +1039,7 @@ function Analysis({ seed }) {
           <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>Tempel kronologi perkara. Engine menjalankan 4 tahap: <span className="emerald-text">Fakta → Isu → Pasal → Uji Unsur</span>.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <select className="field" value={filter} onChange={(e) => setFilter(e.target.value)}>
-              <option value="all">Semua Sumber Hukum</option><option value="pidana">Pidana — KUHP</option><option value="korporasi">Korporasi — UU PT</option><option value="tata">Tata Negara — UUD 1945</option><option value="pailit">Kepailitan & PKPU — UU 37/2004</option><option value="siber">Siber / ITE</option><option value="niaga">Niaga — Arbitrase & P2SK</option><option value="acara">Hukum Acara — KUHAP & Rv</option>
+              {FILTER_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
             </select>
             <textarea className="field" rows={9} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tempel kronologi lengkap di sini..." />
             <button className="btn-primary" onClick={() => run()} disabled={loading}>{loading ? <><Activity size={16} /> {aiBusy ? "AI menganalisa kronologi…" : "Menjalankan pipeline…"}</> : <><Zap size={16} /> Jalankan Analisa</>}</button>

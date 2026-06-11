@@ -3,6 +3,7 @@
  */
 
 import { PASAL } from "../data/pasalCorpus.js";
+import { LAW_META, FILTER_GROUPS, familyOf } from "../data/lawRegistry.js";
 
 export { PASAL };
 
@@ -53,20 +54,20 @@ export function outsideHits(q) {
   return Object.keys(OUTSIDE).filter((k) => n.includes(k)).map((k) => ({ k, v: OUTSIDE[k] }));
 }
 
-const LAWFAM = {
-  pidana: (l) => l === "KUHP",
-  korporasi: (l) => l.indexOf("UU PT") === 0,
-  tata: (l) => l === "UUD 1945",
-  pailit: (l) => l.indexOf("UU 37/2004") === 0,
-  acara: (l) => l.indexOf("UU 20/2025") === 0 || l === "RV",
-  siber: (l) => l.indexOf("UU ITE") === 0,
-  niaga: (l) => l.indexOf("UU 30/1999") === 0 || l.indexOf("UU 4/2023") === 0,
-};
-
 function lawInFilter(l, f) {
-  const fn = LAWFAM[f];
-  return fn ? fn(l) : true;
+  if (!f || f === "all") return true;
+  return familyOf(l) === f;
 }
+
+/**
+ * Filter options for the "Sumber Hukum" dropdown — only families that actually
+ * have at least one pasal in the corpus, so the list grows as laws are added.
+ */
+const PRESENT_FAMILIES = new Set(PASAL.map((e) => familyOf(e.l)).filter(Boolean));
+export const FILTER_OPTIONS = [
+  { key: "all", label: "Semua Sumber Hukum" },
+  ...FILTER_GROUPS.filter((g) => PRESENT_FAMILIES.has(g.key)),
+];
 
 /** @returns {Array<{l,p,b,t,score?,rel?}>} */
 export function searchPasal(q, filter = "all") {
@@ -90,18 +91,9 @@ export function searchPasal(q, filter = "all") {
   return res.slice(0, 24).map((r) => ({ ...r, rel: Math.round((r.score / max) * 100) }));
 }
 
-const LAW_SHORT = {
-  KUHP: "KUHP", "UUD 1945": "UUD '45", "UU 37/2004": "UU Pailit", "UU ITE 11/2008": "ITE '08",
-  "UU ITE 1/2024": "ITE '24", "UU 30/1999": "Arbitrase", "UU 20/2025": "KUHAP", "UU 4/2023": "P2SK", RV: "RV",
-};
-const LAW_COLOR = {
-  KUHP: "#1fb37e", "UUD 1945": "#8fb6d6", "UU 37/2004": "#c98f7f", "UU ITE 11/2008": "#9f8fd6",
-  "UU ITE 1/2024": "#9f8fd6", "UU 30/1999": "#7fc8b0", "UU 20/2025": "#d69f8f", "UU 4/2023": "#b0c87f", RV: "#8f9fb0",
-};
-
-export const lawShort = (l = "") => LAW_SHORT[l] || (l.indexOf("UU PT") === 0 ? "UU PT" : l);
+export const lawShort = (l = "") => (LAW_META[l] && LAW_META[l].short) || (l.indexOf("UU PT") === 0 ? "UU PT" : l);
 export const lawSlug = (l = "") => (l === "KUHP" ? "kuhp" : l === "UUD 1945" ? "uud" : l.replace(/[^A-Za-z0-9]+/g, "").toLowerCase());
-export const lawColor = (l = "") => LAW_COLOR[l] || (l.indexOf("UU PT") === 0 ? "#d8c08a" : "#8fb6d6");
+export const lawColor = (l = "") => (LAW_META[l] && LAW_META[l].color) || (l.indexOf("UU PT") === 0 ? "#d8c08a" : "#8fb6d6");
 
 /** Format retrieved statutes for RAG prompt injection. */
 export function formatPasalForRag(hits, max = 12) {
