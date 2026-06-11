@@ -84,6 +84,47 @@
 }
 .knsl-plogin.is-exiting::after { opacity: 1; }
 
+/* ── Supabase auth overrides (features/auth AuthLayout) ────────────
+   Production renders <LoginPage> → <AuthLayout> (.auth-root) which has
+   its own opaque dark background that would hide the cinematic scene.
+   Here we make that shell transparent, drop the desktop two-pane brand
+   panel (the floating Lady Justice statue is the new hero), and turn the
+   form column into the same glass card as the legacy path. CSS only —
+   every field, tab, Google/phone button and validation stays intact. */
+.knsl-plogin .auth-root { background: transparent !important; min-height: 100vh; }
+.knsl-plogin .auth-shell { grid-template-columns: 1fr; min-height: 100vh; }
+.knsl-plogin .auth-brand { display: none !important; }          /* replaced by the scene */
+.knsl-plogin .auth-mobile-ambient { display: none !important; } /* replaced by the scene aurora */
+.knsl-plogin .auth-form-panel {
+  background: transparent !important;
+  align-items: center;
+}
+
+.knsl-plogin .auth-form-wrap {
+  max-width: 420px; width: 100%;
+  padding: 34px 30px 26px;
+  border-radius: 22px;
+  position: relative;
+  background: linear-gradient(180deg, rgba(22,29,26,0.78), rgba(12,16,14,0.72)) !important;
+  backdrop-filter: blur(26px) saturate(135%);
+  -webkit-backdrop-filter: blur(26px) saturate(135%);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 44px 96px -52px rgba(0,0,0,0.95),
+    0 0 0 1px rgba(0,0,0,0.4);
+}
+.knsl-plogin .auth-form-wrap::before {
+  content: ""; position: absolute; left: 22px; right: 22px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.6), transparent);
+}
+.knsl-plogin.is-charging .auth-form-wrap { animation: knslCardPulse 1.05s ease-out infinite; }
+
+/* On wide screens, sit the card to the right; statue fills the left */
+@media (min-width: 1100px) {
+  .knsl-plogin .auth-form-panel { justify-content: flex-end; padding-right: clamp(40px, 8vw, 130px); }
+}
+
 /* ── 2. Scene · aurora · vignette · particles ────────────── */
 .knsl-scene {
   position: absolute; inset: 0; z-index: 0; overflow: hidden;
