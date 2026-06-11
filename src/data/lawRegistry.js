@@ -23,6 +23,7 @@ export const LAW_META = {
 
   // ---- to be populated via ingest (text pasted from official JDIH) ----
   "UU 31/1999 jo. 20/2001": { short: "Tipikor", color: "#e0b341", family: "korupsi" },
+  "UU 19/2019": { short: "KPK (Perub. II)", color: "#e0b341", family: "korupsi" },
   "UU 35/2009": { short: "Narkotika", color: "#cf6f6f", family: "narkotika" },
   "UU 8/2010": { short: "TPPU", color: "#b88fd6", family: "tppu" },
   "UU 13/2003": { short: "Naker", color: "#7fb6c8", family: "naker" },
