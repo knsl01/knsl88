@@ -925,6 +925,7 @@ function Analysis({ seed }) {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const refreshHistory = useCallback(async () => {
     if (!isRemoteHistoryEnabled()) { setHistory([]); return; }
@@ -1067,11 +1068,17 @@ function Analysis({ seed }) {
 
           {isRemoteHistoryEnabled() && (
             <div className="glass rise" style={{ padding: 18, marginTop: 16, animationDelay: ".06s" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <div
+                onClick={() => setHistoryOpen((s) => !s)}
+                style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: historyOpen ? 12 : 0, cursor: "pointer", userSelect: "none" }}
+              >
                 <History size={15} className="gold-text" />
                 <span style={{ fontSize: 13.5, fontWeight: 600 }}>Riwayat Analisa</span>
                 <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted)" }}>{historyLoading ? "…" : history.length}</span>
+                <ChevronRight size={15} style={{ color: "var(--muted)", transform: historyOpen ? "rotate(90deg)" : "none", transition: "transform .3s" }} />
               </div>
+              {historyOpen && (
+              <>
               {history.length === 0 && !historyLoading && (
                 <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>Belum ada analisa tersimpan di cloud.</p>
               )}
@@ -1101,6 +1108,8 @@ function Analysis({ seed }) {
                   </div>
                 ))}
               </div>
+              </>
+              )}
             </div>
           )}
         </div>
@@ -2789,6 +2798,7 @@ function ContractReview() {
   const [tab, setTab] = useState("summary");
   const [scanned, setScanned] = useState(false);
   const [history, setHistory] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [pasteMode, setPasteMode] = useState(false);
   const inputRef = React.useRef(null);
 
@@ -2975,12 +2985,18 @@ function ContractReview() {
 
           {/* history */}
           <div className="glass rise" style={{ padding: 18, animationDelay: ".08s" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div
+              onClick={() => setHistoryOpen((s) => !s)}
+              style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: historyOpen ? 12 : 0, cursor: "pointer", userSelect: "none" }}
+            >
               <History size={15} className="gold-text" />
               <span style={{ fontSize: 13.5, fontWeight: 600 }}>Riwayat Tinjauan</span>
               {isRemoteHistoryEnabled() && <span className="badge badge-low" style={{ fontSize: 10 }}>Cloud</span>}
               <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted)" }}>{history.length}</span>
+              <ChevronRight size={15} style={{ color: "var(--muted)", transform: historyOpen ? "rotate(90deg)" : "none", transition: "transform .3s" }} />
             </div>
+            {historyOpen && (
+            <>
             {history.length === 0 && <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>Belum ada tinjauan tersimpan{isRemoteHistoryEnabled() ? " di cloud" : ""}.</p>}
             <div style={{ display: "grid", gap: 8 }}>
               {history.map((h) => (
@@ -2994,6 +3010,8 @@ function ContractReview() {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </div>
 
           <div className="glass" style={{ padding: 14, display: "flex", gap: 9, alignItems: "flex-start", background: "linear-gradient(150deg,rgba(216,192,138,0.06),rgba(8,10,9,0.2))" }}>
