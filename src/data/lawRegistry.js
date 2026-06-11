@@ -43,6 +43,10 @@ export const LAW_META = {
   "UU 3/2004": { short: "Perubahan BI", color: "#6f9fc8", family: "moneter" },
   "UU 49/2009": { short: "Peradilan Umum", color: "#c8a86f", family: "peradilan" },
   "UU 50/2009": { short: "Peradilan Agama", color: "#c8946f", family: "peradilan" },
+  "UU 21/2011": { short: "OJK", color: "#6fb0b8", family: "moneter" },
+  "UU 7/2014": { short: "Perdagangan", color: "#a8c87f", family: "dagang" },
+  "PerBPJS Kes 3/2024": { short: "BPJS Kesehatan", color: "#7fc89f", family: "jamsos" },
+  "PerBPJS TK 1/2023": { short: "BPJS TK", color: "#7fc8b8", family: "jamsos" },
 };
 
 /**
@@ -68,9 +72,11 @@ export const FILTER_GROUPS = [
   { key: "ham", label: "HAM & Sosial" },
   { key: "pailit", label: "Kepailitan & PKPU — UU 37/2004" },
   { key: "perbankan", label: "Perbankan — UU 7/1992 jo. 10/1998" },
-  { key: "moneter", label: "Moneter — Bank Indonesia" },
+  { key: "moneter", label: "Moneter & Jasa Keuangan — BI, OJK" },
+  { key: "jamsos", label: "Jaminan Sosial — BPJS" },
   { key: "siber", label: "Siber / ITE" },
   { key: "niaga", label: "Niaga — Arbitrase & P2SK" },
+  { key: "dagang", label: "Perdagangan — UU 7/2014" },
   { key: "acara", label: "Hukum Acara — KUHAP & Rv" },
   { key: "peradilan", label: "Lembaga Peradilan — Umum & Agama" },
 ];
