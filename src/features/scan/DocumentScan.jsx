@@ -18,6 +18,21 @@ function QualityBadge({ quality, t }) {
   return <span className={`scan-quality ${cls}`} title={`${quality.score}%`}>{label}</span>;
 }
 
+function appendUniquePages(prev, incoming, max = 30) {
+  const seen = new Set(prev.map((p) => p.sourceKey || p.id));
+  const seenFiles = new Set(prev.map((p) => p.fileKey).filter(Boolean));
+  const seenImages = new Set(prev.map((p) => p.dataUrl).filter(Boolean));
+  const unique = incoming.filter((p) => {
+    const key = p.sourceKey || p.id;
+    if (seen.has(key) || (p.fileKey && seenFiles.has(p.fileKey)) || seenImages.has(p.dataUrl)) return false;
+    seen.add(key);
+    if (p.fileKey) seenFiles.add(p.fileKey);
+    if (p.dataUrl) seenImages.add(p.dataUrl);
+    return true;
+  });
+  return [...prev, ...unique].slice(0, max);
+}
+
 export default function DocumentScan({ onSend }) {
   const { t, locale } = useI18n();
   const [pages, setPages] = useState([]);
@@ -42,7 +57,7 @@ export default function DocumentScan({ onSend }) {
     if (!files.length) { setErr(t("scan.errImages")); return; }
     try {
       const imgs = await Promise.all(files.map(fileToPage));
-      setPages((prev) => [...prev, ...imgs].slice(0, 30));
+      setPages((prev) => appendUniquePages(prev, imgs));
       if (!previewId && imgs[0]) setPreviewId(imgs[0].id);
     } catch (e) { setErr(e.message || t("scan.errLoad")); }
   };
@@ -63,7 +78,7 @@ export default function DocumentScan({ onSend }) {
       } else {
         setProgLabel(t("scan.pdfRasterize"));
         const imgs = await pdfToPages(file, (p) => setProg(p));
-        setPages((prev) => [...prev, ...imgs].slice(0, 30));
+        setPages((prev) => appendUniquePages(prev, imgs));
         if (!previewId && imgs[0]) setPreviewId(imgs[0].id);
         if (!extracted.likelyScanned && extracted.text.length > 20) {
           setText(extracted.text);

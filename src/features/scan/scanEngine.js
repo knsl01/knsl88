@@ -27,6 +27,16 @@ const LEGAL_OCR_PROMPT =
   "4. Jika beberapa gambar, gabungkan berurutan dengan pemisah --- halaman ---.\n" +
   "5. Prioritaskan akurasi nama pihak, tanggal, nomor perkara, dan angka.";
 
+function hashString(value) {
+  let h = 2166136261;
+  const s = String(value || "");
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
 /** Downscale large photos for faster OCR and smaller payloads. */
 export async function downscaleDataUrl(dataUrl, maxDim = 2200) {
   const img = await loadImage(dataUrl);
@@ -70,6 +80,16 @@ export async function enhancePage(dataUrl) {
     const v = Math.max(0, Math.min(255, stretched * 1.05));
     d[i] = d[i + 1] = d[i + 2] = v;
     d[i + 3] = 255;
+  }
+  const base = new Uint8ClampedArray(d);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const p = y * w + x;
+      const idx = p * 4;
+      const sharp = (base[idx] * 5) - base[idx - 4] - base[idx + 4] - base[idx - w * 4] - base[idx + w * 4];
+      const v = Math.max(0, Math.min(255, sharp));
+      d[idx] = d[idx + 1] = d[idx + 2] = v;
+    }
   }
   ctx.putImageData(id, 0, 0);
   return { dataUrl: c.toDataURL("image/jpeg", 0.9), w, h };
@@ -126,6 +146,8 @@ export async function fileToPage(file) {
   });
   const d = await downscaleDataUrl(raw);
   const quality = await assessPageQuality(d.dataUrl);
+  const sourceKey = `image|${d.w}x${d.h}|${hashString(d.dataUrl)}`;
+  const fileKey = `${file.name || "image"}|${file.size || 0}`;
   return {
     id: newPageId(),
     dataUrl: d.dataUrl,
@@ -133,6 +155,8 @@ export async function fileToPage(file) {
     enhanced: false,
     corrected: false,
     name: file.name || "halaman",
+    sourceKey,
+    fileKey,
     w: d.w,
     h: d.h,
     quality,
@@ -171,6 +195,8 @@ export async function pdfToPages(file, onProgress) {
       enhanced: false,
       corrected: false,
       name: `${file.name || "pdf"} · hal ${p}`,
+      sourceKey: `pdf|${file.name || "pdf"}|${file.size || 0}|page:${p}`,
+      fileKey: `${file.name || "pdf"}|${file.size || 0}|page:${p}`,
       w: d.w,
       h: d.h,
       quality,
@@ -316,15 +342,23 @@ function findCornersFallback(cv, srcMat) {
     const imgArea = srcMat.rows * srcMat.cols;
     for (let i = 0; i < contours.size(); i++) {
       const c = contours.get(i);
-      const peri = cv.arcLength(c, true);
-      const approx = new cv.Mat();
-      cv.approxPolyDP(c, approx, 0.02 * peri, true);
-      const area = cv.contourArea(approx);
-      if (approx.rows === 4 && area > bestArea && area > imgArea * 0.12) {
-        bestArea = area;
-        best = approx;
-      } else {
-        approx.delete();
+      try {
+        const peri = cv.arcLength(c, true);
+        const approx = new cv.Mat();
+        cv.approxPolyDP(c, approx, 0.02 * peri, true);
+        const area = cv.contourArea(approx);
+        const rect = cv.boundingRect(approx);
+        const fill = area / Math.max(1, rect.width * rect.height);
+        const plausible = approx.rows === 4 && area > imgArea * 0.20 && area < imgArea * 0.98 && fill > 0.55;
+        if (plausible && area > bestArea) {
+          if (best) best.delete();
+          bestArea = area;
+          best = approx;
+        } else {
+          approx.delete();
+        }
+      } finally {
+        c.delete();
       }
     }
 
@@ -472,7 +506,7 @@ export async function ocrVision(images, onProgress) {
     done += batch.length;
     if (onProgress) onProgress(Math.round((done / images.length) * 100));
   }
-  return out.trim();
+  return normalizeOcrText(out);
 }
 
 export async function ocrLocal(images, onProgress) {
@@ -483,6 +517,7 @@ export async function ocrLocal(images, onProgress) {
   let out = "";
   for (let i = 0; i < N; i++) {
     const mk = (lang) => T.recognize(images[i].dataUrl, lang, {
+      preserve_interword_spaces: "1",
       logger: (m) => {
         if (m && typeof m.progress === "number" && onProgress) {
           const base = i / N;
@@ -500,7 +535,19 @@ export async function ocrLocal(images, onProgress) {
     out += (res.data.text || "") + "\n\n";
     if (onProgress) onProgress(Math.round(((i + 1) / N) * 100));
   }
-  return out.trim();
+  return normalizeOcrText(out);
+}
+
+export function normalizeOcrText(text) {
+  return String(text || "")
+    .replace(/\r/g, "")
+    .replace(/([A-Za-zÀ-ÿ])-\n([A-Za-zÀ-ÿ])/g, "$1$2")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\s*---\s*halaman\s*---\s*/gi, "\n\n--- halaman ---\n\n")
+    .trim();
 }
 
 export async function runOcr(images, mode, onProgress) {
@@ -524,6 +571,13 @@ export function exportWord(text, name) {
   downloadBlob(new Blob(["\ufeff" + html], { type: "application/msword" }), `Pindai_${safe}.doc`);
 }
 
+function yieldToBrowser() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => resolve());
+    else setTimeout(resolve, 0);
+  });
+}
+
 /**
  * Smart pipeline: deskew → enhance (for OCR) → OCR.
  * Deskew must run on original color image before grayscale enhance.
@@ -542,6 +596,7 @@ export async function runSmartPipeline(pages, { mode, onStage, onProgress }) {
       corrected++;
     } catch { /* keep original */ }
     if (onProgress) onProgress(Math.round(((i + 1) / working.length) * 30));
+    await yieldToBrowser();
   }
 
   stage("enhance", 35);
@@ -558,6 +613,7 @@ export async function runSmartPipeline(pages, { mode, onStage, onProgress }) {
       };
     } catch { /* keep */ }
     if (onProgress) onProgress(35 + Math.round(((i + 1) / working.length) * 20));
+    await yieldToBrowser();
   }
 
   stage("ocr", 55);
