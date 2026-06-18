@@ -45,10 +45,15 @@
 
 ## 6. Login Google (Gmail)
 
+Panduan lengkap: **`SETUP-GOOGLE.md`** (Google Cloud + Supabase, langkah demi langkah).
+
+Ringkas:
+
 1. **Authentication** → **Providers** → **Google** → aktifkan
 2. Buat OAuth Client di [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
    - Tipe: **Web application**
    - **Authorized redirect URI:** salin dari Supabase (biasanya `https://<project-ref>.supabase.co/auth/v1/callback`)
+   - Tambahkan Gmail tes di **OAuth consent screen → Test users** (wajib saat app masih *Testing*)
 3. Paste **Client ID** dan **Client Secret** ke Supabase → Save
 
 Di aplikasi, tombol **Masuk dengan Google** akan redirect ke Google lalu kembali ke `/login`.
