@@ -19,16 +19,10 @@ import { useLocalUser } from "../../hooks/useLocalUser.js";
 import { isSupabaseConfigured } from "../../lib/supabase.js";
 import UserAvatar from "../../components/profile/UserAvatar.jsx";
 import { useI18n } from "../../i18n/I18nContext.jsx";
+import { formatChatContent } from "./formatContent.js";
 
 function msgId() {
   return "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
-}
-
-function formatContent(text) {
-  return String(text || "")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\_(.+?)\_/g, "<em>$1</em>")
-    .replace(/\n/g, "<br/>");
 }
 
 function ChatBubble({ message, user }) {
@@ -47,7 +41,7 @@ function ChatBubble({ message, user }) {
       <div className={`legal-chat-bubble glass ${isUser ? "legal-chat-bubble-user" : ""}`}>
         <div
           className="legal-chat-text"
-          dangerouslySetInnerHTML={{ __html: formatContent(message.content) }}
+          dangerouslySetInnerHTML={{ __html: formatChatContent(message.content) }}
         />
       </div>
     </div>
