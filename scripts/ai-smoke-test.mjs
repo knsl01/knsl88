@@ -8,6 +8,7 @@ import {
 } from "../server-ai-guards.mjs";
 import { routeAI } from "../server-ai-router.mjs";
 import { dispatchKnslChatAgent } from "../src/agents/chatDispatcher.js";
+import { formatChatContent } from "../src/features/chat/formatContent.js";
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -21,6 +22,16 @@ function geminiResponse(text) {
     candidates: [{ content: { parts: [{ text }] } }],
   });
 }
+
+const formattedChat = formatChatContent('Halo **tebal** _miring_\n<img src=x onerror="alert(1)"> & <script>alert(2)</script>');
+assert.match(formattedChat, /<strong>tebal<\/strong>/);
+assert.match(formattedChat, /<em>miring<\/em>/);
+assert.match(formattedChat, /<br\/>/);
+assert.doesNotMatch(formattedChat, /<img/i);
+assert.doesNotMatch(formattedChat, /<script/i);
+assert.match(formattedChat, /&lt;img src=x onerror="alert\(1\)"&gt;/);
+assert.match(formattedChat, /&lt;script&gt;alert\(2\)&lt;\/script&gt;/);
+assert.match(formattedChat, /&amp;/);
 
 async function withMockFetch(mock, fn) {
   const originalFetch = globalThis.fetch;
