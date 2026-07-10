@@ -1003,7 +1003,13 @@ function Analysis({ seed }) {
     }
   };
   const run = (text) => { doRun(text != null ? text : q, filter); };
-  useEffect(() => { if (seed && seed.q) { setQ(seed.q); doRun(seed.q, "all"); } }, [seed]);
+  useEffect(() => {
+    if (seed && seed.q) {
+      setQ(seed.q);
+      setFilter("all");
+      doRun(seed.q, "all");
+    }
+  }, [seed]);
 
   const cls = useMemo(() => {
     if (!data?.rs?.retrieved) return null;
@@ -1389,7 +1395,14 @@ function Research({ seed }) {
       setAiBusy(false);
     }
   };
-  useEffect(() => { if (seed && seed.q) { setQ(seed.q); setRes(searchPasal(seed.q, "all")); } }, [seed]);
+  useEffect(() => {
+    if (seed && seed.q) {
+      setQ(seed.q);
+      setFilter("all");
+      setFiltersOpen(false);
+      setRes(searchPasal(seed.q, "all"));
+    }
+  }, [seed]);
   const curFilter = FILTER_OPTIONS.find((o) => o.key === filter) || FILTER_OPTIONS[0];
   return (
     <div className="view-enter page scrollbar">
