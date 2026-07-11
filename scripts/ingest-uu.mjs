@@ -105,9 +105,15 @@ if (!out.length) {
   process.exit(1);
 }
 
-/* dedupe within this ingest by pasal number (keep first) */
-const seen = new Set();
-const fresh = out.filter((e) => (seen.has(e.p) ? false : (seen.add(e.p), true)));
+const counts = new Map();
+for (const e of out) counts.set(e.p, (counts.get(e.p) || 0) + 1);
+const duplicates = [...counts].filter(([, count]) => count > 1).map(([p, count]) => `${p} (${count}x)`);
+if (duplicates.length) {
+  console.error(`✗ Duplicate Pasal blocks found for ${law}: ${duplicates.join(", ")}.`);
+  console.error("  Ingest aborted before writing. Merge repeated/OCR-split blocks manually so no statute text is silently dropped.");
+  process.exit(1);
+}
+const fresh = out;
 
 /* ---- merge into corpus ---- */
 const { PASAL } = await import(resolve(ROOT, "src/data/pasalCorpus.js") + `?t=${Date.now()}`);
