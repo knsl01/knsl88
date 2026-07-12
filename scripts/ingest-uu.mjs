@@ -14,7 +14,7 @@
  *   - Boilerplate (penjelasan, lembaran negara, ttd, etc.) before the first
  *     "Pasal" is ignored.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -105,9 +105,17 @@ if (!out.length) {
   process.exit(1);
 }
 
-/* dedupe within this ingest by pasal number (keep first) */
-const seen = new Set();
-const fresh = out.filter((e) => (seen.has(e.p) ? false : (seen.add(e.p), true)));
+const counts = new Map();
+for (const e of out) counts.set(e.p, (counts.get(e.p) || 0) + 1);
+
+const duplicates = [...counts.entries()].filter(([, count]) => count > 1).map(([p, count]) => `${p} (${count}x)`);
+if (duplicates.length) {
+  console.error(`✗ Duplicate Pasal blocks found for ${law}: ${duplicates.join(", ")}.`);
+  console.error("  Aborting ingest so duplicate article text is reviewed instead of silently dropped.");
+  process.exit(1);
+}
+
+const fresh = out;
 
 /* ---- merge into corpus ---- */
 const { PASAL } = await import(resolve(ROOT, "src/data/pasalCorpus.js") + `?t=${Date.now()}`);
@@ -115,7 +123,9 @@ const kept = PASAL.filter((e) => e.l !== law); // drop previous entries for this
 const merged = [...kept, ...fresh];
 
 const header = "/** KNSL indexed statute corpus */\n";
-writeFileSync(CORPUS, header + "export const PASAL = " + JSON.stringify(merged) + ";\n");
+const tmpCorpus = `${CORPUS}.${process.pid}.tmp`;
+writeFileSync(tmpCorpus, header + "export const PASAL = " + JSON.stringify(merged) + ";\n");
+renameSync(tmpCorpus, CORPUS);
 
 console.log(`✓ ${law}: ingested ${fresh.length} pasal (was ${PASAL.length - kept.length}, corpus now ${merged.length} total).`);
 console.log(`  Pasal: ${fresh.slice(0, 12).map((e) => e.p).join(", ")}${fresh.length > 12 ? " …" : ""}`);
