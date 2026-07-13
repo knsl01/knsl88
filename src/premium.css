@@ -28,6 +28,8 @@
   --px: 0; --py: 0;
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background:
     radial-gradient(1300px 800px at 42% -12%, rgba(19,133,92,0.10), transparent 62%),
@@ -35,13 +37,29 @@
     linear-gradient(180deg, #070908 0%, #040605 100%);
 }
 /* the existing login UI is rendered here, above the scene */
-.knsl-plogin-content { position: relative; z-index: 10; }
+.knsl-plogin-content {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
 
 /* ── Legacy login overrides ───────────────────────────────────────
    Turn the repo's own centered login (.knsl > .login-screen >
    .login-card) into a glass card floating over the statue scene.
    No JSX is touched — these win via specificity + !important. */
-.knsl-plogin .knsl { background: transparent !important; }
+.knsl-plogin .knsl {
+  background: transparent !important;
+  height: auto !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: visible !important;
+}
 .knsl-plogin .login-screen { background: transparent !important; overflow: visible !important; }
 .knsl-plogin .login-ambient { display: none !important; }   /* replaced by the scene aurora */
 
@@ -333,6 +351,12 @@
   .knsl-statue-wrap { opacity: 0.4; }
   .knsl-rings, .knsl-bloom { opacity: 0.5; }
   .knsl-doc { display: none; }
+}
+@media (max-width: 900px), (max-height: 760px) {
+  .knsl-plogin .login-screen,
+  .knsl-plogin .auth-form-panel {
+    justify-content: flex-start;
+  }
 }
 @media (max-height: 760px) and (min-width: 901px) {
   .knsl-statue-wrap { transform: translate(-50%, -50%) scale(0.82); }
