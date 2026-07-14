@@ -29,9 +29,9 @@ writeFileSync(duplicateSource, `
 BAB I
 KETENTUAN UMUM
 Pasal 1
-Bagian pertama.
+Isi duplikat pertama.
 Pasal 1
-Bagian kedua yang tidak boleh ditelan diam-diam.
+Isi duplikat kedua yang tidak boleh ditelan diam-diam.
 `);
 
 const duplicate = runIngest({ law: "UU 19/2019", source: duplicateSource, corpus });
