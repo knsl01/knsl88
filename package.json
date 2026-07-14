@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:ai": "node scripts/ai-smoke-test.mjs",
+    "test:ingest": "node scripts/ingest-uu.test.mjs",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
