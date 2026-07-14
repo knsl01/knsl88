@@ -14,13 +14,15 @@
  *   - Boilerplate (penjelasan, lembaran negara, ttd, etc.) before the first
  *     "Pasal" is ignored.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
-const CORPUS = resolve(ROOT, "src/data/pasalCorpus.js");
+const CORPUS = process.env.KNSL_CORPUS_PATH
+  ? resolve(ROOT, process.env.KNSL_CORPUS_PATH)
+  : resolve(ROOT, "src/data/pasalCorpus.js");
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -105,17 +107,35 @@ if (!out.length) {
   process.exit(1);
 }
 
-/* dedupe within this ingest by pasal number (keep first) */
+/* Fail before writing: duplicate article boundaries usually mean corrupted OCR
+   or an amendment text that needs manual splitting, and silently keeping one
+   copy would truncate the legal corpus. */
 const seen = new Set();
-const fresh = out.filter((e) => (seen.has(e.p) ? false : (seen.add(e.p), true)));
+const duplicates = [];
+for (const e of out) {
+  if (seen.has(e.p)) duplicates.push(e.p);
+  seen.add(e.p);
+}
+if (duplicates.length) {
+  console.error(`✗ Duplicate Pasal header(s) for ${law}: ${[...new Set(duplicates)].join(", ")}`);
+  console.error("  Aborting without writing. Split/clean the source text so each Pasal appears exactly once.");
+  process.exit(1);
+}
 
 /* ---- merge into corpus ---- */
-const { PASAL } = await import(resolve(ROOT, "src/data/pasalCorpus.js") + `?t=${Date.now()}`);
+const { PASAL } = await import(CORPUS + `?t=${Date.now()}`);
 const kept = PASAL.filter((e) => e.l !== law); // drop previous entries for this law
-const merged = [...kept, ...fresh];
+const merged = [...kept, ...out];
 
 const header = "/** KNSL indexed statute corpus */\n";
-writeFileSync(CORPUS, header + "export const PASAL = " + JSON.stringify(merged) + ";\n");
+const tmp = resolve(dirname(CORPUS), `.pasalCorpus.${process.pid}.${Date.now()}.tmp`);
+try {
+  writeFileSync(tmp, header + "export const PASAL = " + JSON.stringify(merged) + ";\n");
+  renameSync(tmp, CORPUS);
+} catch (e) {
+  try { rmSync(tmp, { force: true }); } catch {}
+  throw e;
+}
 
-console.log(`✓ ${law}: ingested ${fresh.length} pasal (was ${PASAL.length - kept.length}, corpus now ${merged.length} total).`);
-console.log(`  Pasal: ${fresh.slice(0, 12).map((e) => e.p).join(", ")}${fresh.length > 12 ? " …" : ""}`);
+console.log(`✓ ${law}: ingested ${out.length} pasal (was ${PASAL.length - kept.length}, corpus now ${merged.length} total).`);
+console.log(`  Pasal: ${out.slice(0, 12).map((e) => e.p).join(", ")}${out.length > 12 ? " …" : ""}`);
